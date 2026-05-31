@@ -106,22 +106,29 @@ input:focus { border-color:#e85252; }
 
     <button class="btn" onclick="reportPayment()">Reportar Pagamento Pix</button>
     <div id="msg" class="msg"></div>
+    <p style="text-align:center;font-size:12px;color:#aaa;margin-top:16px;">
+        Dúvidas? <a id="contact-link" href="#" style="color:#e85252;">Entre em contato</a>
+    </p>
 </div>
 
 <script>
 const EMAIL_RE = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 // Carrega chave Pix do servidor
-async function loadPixKey() {
+async function loadConfig() {
     try {
         const res = await fetch('/api/config');
         const cfg = await res.json();
         if (cfg.pix_key) document.getElementById('pix-key').textContent = cfg.pix_key;
+        if (cfg.contact_email) {
+            const el = document.getElementById('contact-link');
+            if (el) { el.href = 'mailto:' + cfg.contact_email; el.textContent = cfg.contact_email; }
+        }
     } catch(e) {
         document.getElementById('pix-key').textContent = 'Erro ao carregar chave Pix';
     }
 }
-loadPixKey();
+loadConfig();
 
 function copyPix() {
     const key = document.getElementById('pix-key').textContent;

@@ -140,7 +140,13 @@ def inject_license_code(html_content: str, secret_key: str, server_url: str = 'h
             }} else if (reason === 'invalid_signature') {{
                 msgEl.innerHTML = '⚠️ Arquivo de licença inválido ou corrompido.<br>Faça login no site para baixar novamente.';
             }} else if (reason === 'revoked') {{
-                msgEl.innerHTML = '⊘ <strong>Acesso Revogado</strong><br>Sua licença foi cancelada pelo administrador.<br>Entre em contato para mais informações.';
+                fetch(_tbServer + '/api/config').then(r=>r.json()).then(cfg=>{{
+                    const mail = cfg.contact_email || '';
+                    msgEl.innerHTML = '⊘ <strong>Acesso Revogado</strong><br>Sua licença foi cancelada pelo administrador.' +
+                        (mail ? `<br><a href="mailto:${{mail}}" style="color:#e85252;">${{mail}}</a>` : '<br>Entre em contato com o suporte.');
+                }}).catch(()=>{{
+                    msgEl.innerHTML = '⊘ <strong>Acesso Revogado</strong><br>Sua licença foi cancelada pelo administrador.<br>Entre em contato com o suporte.';
+                }});
             }} else if (reason === 'server_error') {{
                 msgEl.innerHTML = '⚠️ <strong>Erro no Servidor</strong><br>Não conseguimos validar sua licença.<br>Tente novamente mais tarde.';
             }} else if (reason === 'connection_failed') {{

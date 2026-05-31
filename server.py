@@ -52,6 +52,7 @@ load_dotenv()
 SECRET_KEY      = os.environ.get('TRIPABOT_SECRET_KEY', '')
 ADMIN_PASSWORD  = os.environ.get('ADMIN_PASSWORD', '')
 PIX_KEY         = os.environ.get('PIX_KEY', 'Configure PIX_KEY no .env')
+CONTACT_EMAIL   = os.environ.get('CONTACT_EMAIL', '')
 
 # Tokens de admin armazenados no SQLite (persiste entre workers e restarts)
 def _admin_token_valid(token):
@@ -142,7 +143,7 @@ def renovar():
 @app.route('/api/config')
 def api_config():
     """Configurações públicas do servidor (sem dados sensíveis)."""
-    return jsonify({'pix_key': PIX_KEY})
+    return jsonify({'pix_key': PIX_KEY, 'contact_email': CONTACT_EMAIL})
 
 
 @app.route('/download-html')
