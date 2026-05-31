@@ -352,15 +352,17 @@ def is_license_revoked(email, issued_at):
             """, (email, issued_at))
             lic = cur.fetchone()
             cur.close()
+            if not lic:
+                return True
+            return bool(lic[0])
         else:
             lic = conn.execute("""
                 SELECT is_revoked FROM licenses
                 WHERE email=? AND issued_at=?
             """, (email, issued_at)).fetchone()
-
-        if not lic:
-            return True  # Licença não encontrada = revogada
-        return bool(lic[0] if isinstance(lic, tuple) else lic['is_revoked'])
+            if not lic:
+                return True
+            return bool(lic['is_revoked'])
 
 
 # ─── PAGAMENTOS ─────────────────────────────────────────────
