@@ -58,6 +58,12 @@ def init_db():
             token       TEXT PRIMARY KEY,
             expires_at  TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS download_tokens (
+            token       TEXT PRIMARY KEY,
+            user_id     INTEGER NOT NULL,
+            lic_content TEXT NOT NULL,
+            expires_at  TEXT NOT NULL
+        );
     """)
     conn.commit()
     conn.close()
@@ -213,3 +219,29 @@ def reject_payment(payment_id):
     conn.execute("UPDATE payments SET status='rejected' WHERE id=?", (payment_id,))
     conn.commit()
     conn.close()
+
+
+# ─── DOWNLOAD TOKENS ───────────────────────────────────────
+
+def save_download_token(token, user_id, lic_content, expires_at):
+    """Salva token de download no banco."""
+    conn = get_db()
+    conn.execute(
+        "INSERT OR REPLACE INTO download_tokens (token, user_id, lic_content, expires_at) VALUES (?, ?, ?, ?)",
+        (token, user_id, lic_content, expires_at)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_download_token(token):
+    """Busca e consome token de download (one-time use)."""
+    conn = get_db()
+    row = conn.execute(
+        "SELECT * FROM download_tokens WHERE token=?", (token,)
+    ).fetchone()
+    if row:
+        conn.execute("DELETE FROM download_tokens WHERE token=?", (token,))
+        conn.commit()
+    conn.close()
+    return dict(row) if row else None

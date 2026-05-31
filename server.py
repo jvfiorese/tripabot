@@ -34,7 +34,8 @@ from database import (
     init_db, create_user, get_user_by_email, get_user_by_id, get_all_users,
     update_user_status, update_user_trial, update_last_verified,
     save_license, get_latest_license, revoke_all_licenses, is_license_revoked,
-    create_payment, get_pending_payments, approve_payment, reject_payment
+    create_payment, get_pending_payments, approve_payment, reject_payment,
+    save_download_token, get_download_token
 )
 from license_gen import generate_license, verify_license_content
 
@@ -99,16 +100,10 @@ def admin_required(f):
 
 
 def _make_download_token(user_id: int, lic_content: str) -> str:
-    """Gera token de download temporário (30 min)."""
+    """Gera token de download temporário (30 min) — salvo no banco."""
     token = secrets.token_urlsafe(32)
-    # Armazena em memória (simples, funciona para poucos usuários)
-    if not hasattr(app, '_download_tokens'):
-        app._download_tokens = {}
-    app._download_tokens[token] = {
-        'user_id':     user_id,
-        'lic_content': lic_content,
-        'expires_at':  datetime.now(timezone.utc) + timedelta(minutes=30)
-    }
+    expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+    save_download_token(token, user_id, lic_content, expires_at)
     return token
 
 
@@ -256,24 +251,18 @@ def api_verify():
 @app.route('/api/download-lic/<token>')
 def download_lic(token):
     """Download do arquivo tripabot.lic via token temporário."""
-    if not hasattr(app, '_download_tokens'):
-        abort(404)
-
-    token_data = app._download_tokens.get(token)
+    token_data = get_download_token(token)  # busca e remove (one-time use)
     if not token_data:
-        abort(404)
+        return jsonify({'error': 'Link expirado ou inválido. Faça login novamente.'}), 404
 
-    now = datetime.now(timezone.utc)
-    if now > token_data['expires_at']:
-        del app._download_tokens[token]
-        return jsonify({'error': 'Token expirado. Faça login novamente.'}), 410
-
-    lic_content = token_data['lic_content']
-    # Remove token após uso (one-time download)
-    del app._download_tokens[token]
+    # Verifica expiração
+    from datetime import datetime as dt
+    expires_at = token_data['expires_at']
+    if expires_at < datetime.now(timezone.utc).isoformat():
+        return jsonify({'error': 'Link expirado. Faça login novamente.'}), 410
 
     return Response(
-        lic_content,
+        token_data['lic_content'],
         mimetype='application/octet-stream',
         headers={'Content-Disposition': 'attachment; filename="tripabot.lic"'}
     )
