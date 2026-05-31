@@ -333,7 +333,6 @@ async function approvePayment(paymentId) {
     }
 
     // Mostra link de download
-    const row = document.getElementById(`payment-row-${paymentId}`);
     if (row) {
         row.querySelector('td:last-child').innerHTML =
             `✓ Aprovado! <a class="dl-link" href="${data.download_url}" target="_blank">Baixar .lic</a>`;
