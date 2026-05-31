@@ -54,27 +54,32 @@ ADMIN_PASSWORD  = os.environ.get('ADMIN_PASSWORD', '')
 PIX_KEY         = os.environ.get('PIX_KEY', 'Configure PIX_KEY no .env')
 CONTACT_EMAIL   = os.environ.get('CONTACT_EMAIL', '')
 
-# Tokens de admin armazenados no SQLite (persiste entre workers e restarts)
+# Tokens de admin — usa funções do database.py (compatível com SQLite e PostgreSQL)
 def _admin_token_valid(token):
-    from database import get_db
-    conn = get_db()
-    row = conn.execute(
-        "SELECT 1 FROM admin_tokens WHERE token=? AND expires_at > ?",
-        (token, datetime.now(timezone.utc).isoformat())
-    ).fetchone()
-    conn.close()
-    return row is not None
+    from database import _run, _one, _conn, USE_PG
+    conn = _conn()
+    try:
+        cur = _run(conn, "SELECT 1 FROM admin_tokens WHERE token=? AND expires_at > ?",
+                   (token, datetime.now(timezone.utc).isoformat()))
+        return cur.fetchone() is not None
+    finally:
+        conn.close()
 
 def _admin_token_save(token):
-    from database import get_db
+    from database import _run, _conn, USE_PG
     expires = (datetime.now(timezone.utc) + timedelta(hours=8)).isoformat()
-    conn = get_db()
-    conn.execute(
-        "INSERT OR REPLACE INTO admin_tokens (token, expires_at) VALUES (?, ?)",
-        (token, expires)
-    )
-    conn.commit()
-    conn.close()
+    conn = _conn()
+    try:
+        if USE_PG:
+            _run(conn, """INSERT INTO admin_tokens (token, expires_at) VALUES (?, ?)
+                          ON CONFLICT (token) DO UPDATE SET expires_at=EXCLUDED.expires_at""",
+                 (token, expires))
+        else:
+            _run(conn, "INSERT OR REPLACE INTO admin_tokens (token, expires_at) VALUES (?, ?)",
+                 (token, expires))
+        conn.commit()
+    finally:
+        conn.close()
 
 if not SECRET_KEY:
     print("⚠️  ATENÇÃO: TRIPABOT_SECRET_KEY não definida no .env!")
