@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 TripaBot Setup Script
 Configura o TripaBot.html com a chave de licença do servidor.
