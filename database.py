@@ -1,259 +1,419 @@
 # -*- coding: utf-8 -*-
 """
-TripaBot License Server — Módulo de Banco de Dados (SQLite)
+TripaBot License Server — Banco de Dados
+Usa PostgreSQL se DATABASE_URL estiver definida (Railway),
+senão usa SQLite local (desenvolvimento).
 """
 
 import os
 import sqlite3
 from datetime import datetime, timezone
 
-DB_PATH = os.environ.get('DB_PATH', os.path.join(os.path.dirname(__file__), 'tripabot.db'))
+# ── Detecta modo ──────────────────────────────────────────────
+_DB_URL = os.environ.get('DATABASE_URL', '')
+if _DB_URL.startswith('postgres://'):
+    _DB_URL = _DB_URL.replace('postgres://', 'postgresql://', 1)
+USE_PG = bool(_DB_URL)
+
+if USE_PG:
+    import psycopg2
+    import psycopg2.extras
+    print(f"[DB] PostgreSQL (Railway) ✓")
+else:
+    _SQLITE_PATH = os.environ.get('DB_PATH', os.path.join(os.path.dirname(__file__), 'tripabot.db'))
+    print(f"[DB] SQLite: {_SQLITE_PATH}")
 
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH, timeout=10)
-    conn.row_factory = sqlite3.Row
-    return conn
+# ── Conexão ───────────────────────────────────────────────────
 
+def _conn():
+    if USE_PG:
+        c = psycopg2.connect(_DB_URL)
+        c.autocommit = False
+        return c
+    else:
+        c = sqlite3.connect(_SQLITE_PATH, timeout=10)
+        c.row_factory = sqlite3.Row
+        return c
+
+
+def _q(sql):
+    """Troca ? por %s para PostgreSQL."""
+    return sql.replace('?', '%s') if USE_PG else sql
+
+
+def _one(cur):
+    row = cur.fetchone()
+    if row is None:
+        return None
+    return dict(row) if USE_PG else dict(row)
+
+
+def _all(cur):
+    rows = cur.fetchall()
+    return [dict(r) for r in rows]
+
+
+def _run(conn, sql, params=()):
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) if USE_PG else conn.cursor()
+    cur.execute(_q(sql), params)
+    return cur
+
+
+def _now():
+    return datetime.now(timezone.utc).isoformat()
+
+
+# ── Init ──────────────────────────────────────────────────────
 
 def init_db():
-    conn = get_db()
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS users (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            email         TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            name          TEXT,
-            status        TEXT DEFAULT 'trial',
-            created_at    TEXT NOT NULL,
-            trial_expires TEXT,
-            paid_expires  TEXT,
-            last_verified TEXT,
-            payment_notes TEXT
-        );
-        CREATE TABLE IF NOT EXISTS licenses (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id     INTEGER NOT NULL,
-            email       TEXT NOT NULL,
-            issued_at   TEXT NOT NULL,
-            expires_at  TEXT NOT NULL,
-            plan        TEXT NOT NULL,
-            lic_content TEXT NOT NULL,
-            is_revoked  INTEGER DEFAULT 0,
-            created_at  TEXT NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        );
-        CREATE TABLE IF NOT EXISTS payments (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id     INTEGER NOT NULL,
-            amount      REAL NOT NULL,
-            method      TEXT DEFAULT 'pix',
-            status      TEXT DEFAULT 'pending',
-            notes       TEXT,
-            created_at  TEXT NOT NULL,
-            approved_at TEXT,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        );
-        CREATE TABLE IF NOT EXISTS admin_tokens (
-            token       TEXT PRIMARY KEY,
-            expires_at  TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS download_tokens (
-            token       TEXT PRIMARY KEY,
-            user_id     INTEGER NOT NULL,
-            lic_content TEXT NOT NULL,
-            expires_at  TEXT NOT NULL
-        );
-        CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-        CREATE INDEX IF NOT EXISTS idx_licenses_user_id ON licenses(user_id);
-        CREATE INDEX IF NOT EXISTS idx_licenses_email ON licenses(email);
-        CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
-        CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
-    """)
+    conn = _conn()
+    cur = conn.cursor()
+
+    if USE_PG:
+        statements = [
+            """CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                name TEXT,
+                status TEXT DEFAULT 'trial',
+                created_at TEXT NOT NULL,
+                trial_expires TEXT,
+                paid_expires TEXT,
+                last_verified TEXT,
+                payment_notes TEXT
+            )""",
+            """CREATE TABLE IF NOT EXISTS licenses (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                email TEXT NOT NULL,
+                issued_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                plan TEXT NOT NULL,
+                lic_content TEXT NOT NULL,
+                is_revoked INTEGER DEFAULT 0,
+                created_at TEXT NOT NULL
+            )""",
+            """CREATE TABLE IF NOT EXISTS payments (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                amount REAL NOT NULL,
+                method TEXT DEFAULT 'pix',
+                status TEXT DEFAULT 'pending',
+                notes TEXT,
+                created_at TEXT NOT NULL,
+                approved_at TEXT
+            )""",
+            """CREATE TABLE IF NOT EXISTS admin_tokens (
+                token TEXT PRIMARY KEY,
+                expires_at TEXT NOT NULL
+            )""",
+            """CREATE TABLE IF NOT EXISTS download_tokens (
+                token TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                lic_content TEXT NOT NULL,
+                expires_at TEXT NOT NULL
+            )""",
+            "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
+            "CREATE INDEX IF NOT EXISTS idx_lic_uid ON licenses(user_id)",
+            "CREATE INDEX IF NOT EXISTS idx_lic_email ON licenses(email)",
+            "CREATE INDEX IF NOT EXISTS idx_pay_uid ON payments(user_id)",
+            "CREATE INDEX IF NOT EXISTS idx_pay_status ON payments(status)",
+        ]
+        for stmt in statements:
+            cur.execute(stmt)
+    else:
+        cur.executescript("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                name TEXT,
+                status TEXT DEFAULT 'trial',
+                created_at TEXT NOT NULL,
+                trial_expires TEXT,
+                paid_expires TEXT,
+                last_verified TEXT,
+                payment_notes TEXT
+            );
+            CREATE TABLE IF NOT EXISTS licenses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                email TEXT NOT NULL,
+                issued_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                plan TEXT NOT NULL,
+                lic_content TEXT NOT NULL,
+                is_revoked INTEGER DEFAULT 0,
+                created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                amount REAL NOT NULL,
+                method TEXT DEFAULT 'pix',
+                status TEXT DEFAULT 'pending',
+                notes TEXT,
+                created_at TEXT NOT NULL,
+                approved_at TEXT
+            );
+            CREATE TABLE IF NOT EXISTS admin_tokens (
+                token TEXT PRIMARY KEY,
+                expires_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS download_tokens (
+                token TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                lic_content TEXT NOT NULL,
+                expires_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+            CREATE INDEX IF NOT EXISTS idx_lic_uid ON licenses(user_id);
+            CREATE INDEX IF NOT EXISTS idx_lic_email ON licenses(email);
+            CREATE INDEX IF NOT EXISTS idx_pay_uid ON payments(user_id);
+            CREATE INDEX IF NOT EXISTS idx_pay_status ON payments(status);
+        """)
+
     conn.commit()
     conn.close()
-    print(f"[DB] Inicializado: {DB_PATH}")
+    print("[DB] Tabelas inicializadas ✓")
 
+
+# ── Usuários ──────────────────────────────────────────────────
 
 def create_user(email, password_hash, name=None):
-    conn = get_db()
+    email = email.lower().strip()
+    conn = _conn()
     try:
-        now = datetime.now(timezone.utc).isoformat()
-        conn.execute(
-            "INSERT INTO users (email, password_hash, name, created_at) VALUES (?, ?, ?, ?)",
-            (email.lower().strip(), password_hash, name, now)
-        )
+        cur = _run(conn, """
+            INSERT INTO users (email, password_hash, name, created_at)
+            VALUES (?, ?, ?, ?)
+        """, (email, password_hash, name, _now()))
         conn.commit()
-        user = conn.execute("SELECT * FROM users WHERE email = ?", (email.lower().strip(),)).fetchone()
-        return dict(user)
-    except sqlite3.IntegrityError:
+        cur2 = _run(conn, "SELECT * FROM users WHERE email = ?", (email,))
+        return _one(cur2)
+    except Exception:
+        conn.rollback()
         return None
     finally:
         conn.close()
 
 
 def get_user_by_email(email):
-    conn = get_db()
-    user = conn.execute("SELECT * FROM users WHERE email = ?", (email.lower().strip(),)).fetchone()
-    conn.close()
-    return dict(user) if user else None
+    conn = _conn()
+    try:
+        cur = _run(conn, "SELECT * FROM users WHERE email = ?", (email.lower().strip(),))
+        return _one(cur)
+    finally:
+        conn.close()
 
 
 def get_user_by_id(user_id):
-    conn = get_db()
-    user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-    conn.close()
-    return dict(user) if user else None
+    conn = _conn()
+    try:
+        cur = _run(conn, "SELECT * FROM users WHERE id = ?", (user_id,))
+        return _one(cur)
+    finally:
+        conn.close()
 
 
 def get_all_users():
-    conn = get_db()
-    users = conn.execute("""
-        SELECT u.*,
-               COUNT(p.id) as total_payments,
-               SUM(CASE WHEN p.status = 'pending' THEN 1 ELSE 0 END) as pending_payments
-        FROM users u
-        LEFT JOIN payments p ON p.user_id = u.id
-        GROUP BY u.id
-        ORDER BY u.created_at DESC
-    """).fetchall()
-    conn.close()
-    return [dict(u) for u in users]
+    conn = _conn()
+    try:
+        cur = _run(conn, """
+            SELECT u.*,
+                   COUNT(p.id) as total_payments,
+                   SUM(CASE WHEN p.status = 'pending' THEN 1 ELSE 0 END) as pending_payments
+            FROM users u
+            LEFT JOIN payments p ON p.user_id = u.id
+            GROUP BY u.id
+            ORDER BY u.created_at DESC
+        """)
+        return _all(cur)
+    finally:
+        conn.close()
 
 
 def update_user_status(user_id, status, paid_expires=None):
-    conn = get_db()
-    if paid_expires:
-        conn.execute("UPDATE users SET status=?, paid_expires=? WHERE id=?", (status, paid_expires, user_id))
-    else:
-        conn.execute("UPDATE users SET status=? WHERE id=?", (status, user_id))
-    conn.commit()
-    conn.close()
+    conn = _conn()
+    try:
+        if paid_expires:
+            _run(conn, "UPDATE users SET status=?, paid_expires=? WHERE id=?", (status, paid_expires, user_id))
+        else:
+            _run(conn, "UPDATE users SET status=? WHERE id=?", (status, user_id))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def update_user_trial(user_id, trial_expires):
-    conn = get_db()
-    conn.execute("UPDATE users SET status='trial', trial_expires=? WHERE id=?", (trial_expires, user_id))
-    conn.commit()
-    conn.close()
+    conn = _conn()
+    try:
+        _run(conn, "UPDATE users SET status='trial', trial_expires=? WHERE id=?", (trial_expires, user_id))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def update_last_verified(user_id):
-    conn = get_db()
-    now = datetime.now(timezone.utc).isoformat()
-    conn.execute("UPDATE users SET last_verified=? WHERE id=?", (now, user_id))
-    conn.commit()
-    conn.close()
+    conn = _conn()
+    try:
+        _run(conn, "UPDATE users SET last_verified=? WHERE id=?", (_now(), user_id))
+        conn.commit()
+    finally:
+        conn.close()
 
+
+# ── Licenças ──────────────────────────────────────────────────
 
 def save_license(user_id, email, issued_at, expires_at, plan, lic_content):
-    conn = get_db()
-    now = datetime.now(timezone.utc).isoformat()
-    conn.execute("""
-        INSERT INTO licenses (user_id, email, issued_at, expires_at, plan, lic_content, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (user_id, email, issued_at, expires_at, plan, lic_content, now))
-    conn.commit()
-    conn.close()
+    conn = _conn()
+    try:
+        _run(conn, """
+            INSERT INTO licenses (user_id, email, issued_at, expires_at, plan, lic_content, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, email, issued_at, expires_at, plan, lic_content, _now()))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def get_latest_license(user_id):
-    conn = get_db()
-    lic = conn.execute("""
-        SELECT * FROM licenses WHERE user_id=? AND is_revoked=0
-        ORDER BY created_at DESC LIMIT 1
-    """, (user_id,)).fetchone()
-    conn.close()
-    return dict(lic) if lic else None
+    conn = _conn()
+    try:
+        cur = _run(conn, """
+            SELECT * FROM licenses WHERE user_id=? AND is_revoked=0
+            ORDER BY created_at DESC LIMIT 1
+        """, (user_id,))
+        return _one(cur)
+    finally:
+        conn.close()
 
 
 def revoke_all_licenses(user_id):
-    conn = get_db()
-    conn.execute("UPDATE licenses SET is_revoked=1 WHERE user_id=?", (user_id,))
-    conn.commit()
-    conn.close()
+    conn = _conn()
+    try:
+        _run(conn, "UPDATE licenses SET is_revoked=1 WHERE user_id=?", (user_id,))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def is_license_revoked(email, issued_at):
-    conn = get_db()
-    lic = conn.execute("""
-        SELECT is_revoked FROM licenses WHERE email=? AND issued_at=?
-    """, (email, issued_at)).fetchone()
-    conn.close()
-    if not lic:
-        return True
-    return bool(lic['is_revoked'])
+    conn = _conn()
+    try:
+        cur = _run(conn, "SELECT is_revoked FROM licenses WHERE email=? AND issued_at=?", (email, issued_at))
+        row = _one(cur)
+        if not row:
+            return True
+        return bool(row.get('is_revoked', 0))
+    finally:
+        conn.close()
 
+
+# ── Pagamentos ────────────────────────────────────────────────
 
 def create_payment(user_id, amount=50.0, notes=''):
-    conn = get_db()
-    now = datetime.now(timezone.utc).isoformat()
-    conn.execute(
-        "INSERT INTO payments (user_id, amount, notes, created_at) VALUES (?, ?, ?, ?)",
-        (user_id, amount, notes, now)
-    )
-    conn.commit()
-    payment_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-    conn.close()
-    return payment_id
+    conn = _conn()
+    try:
+        if USE_PG:
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur.execute(_q("INSERT INTO payments (user_id, amount, notes, created_at) VALUES (?, ?, ?, ?) RETURNING id"),
+                        (user_id, amount, notes, _now()))
+            payment_id = cur.fetchone()['id']
+        else:
+            cur = _run(conn, "INSERT INTO payments (user_id, amount, notes, created_at) VALUES (?, ?, ?, ?)",
+                       (user_id, amount, notes, _now()))
+            payment_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        conn.commit()
+        return payment_id
+    finally:
+        conn.close()
 
 
 def get_pending_payments():
-    conn = get_db()
-    payments = conn.execute("""
-        SELECT p.*, u.email, u.name, u.status
-        FROM payments p
-        JOIN users u ON u.id = p.user_id
-        WHERE p.status = 'pending'
-        ORDER BY p.created_at DESC
-    """).fetchall()
-    conn.close()
-    return [dict(p) for p in payments]
+    conn = _conn()
+    try:
+        cur = _run(conn, """
+            SELECT p.*, u.email, u.name, u.status
+            FROM payments p JOIN users u ON u.id = p.user_id
+            WHERE p.status = 'pending'
+            ORDER BY p.created_at DESC
+        """)
+        return _all(cur)
+    finally:
+        conn.close()
 
 
 def approve_payment(payment_id):
-    conn = get_db()
-    now = datetime.now(timezone.utc).isoformat()
-    conn.execute("UPDATE payments SET status='approved', approved_at=? WHERE id=?", (now, payment_id))
-    conn.commit()
-    conn.close()
+    conn = _conn()
+    try:
+        _run(conn, "UPDATE payments SET status='approved', approved_at=? WHERE id=?", (_now(), payment_id))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def reject_payment(payment_id):
-    conn = get_db()
-    conn.execute("UPDATE payments SET status='rejected' WHERE id=?", (payment_id,))
-    conn.commit()
-    conn.close()
+    conn = _conn()
+    try:
+        _run(conn, "UPDATE payments SET status='rejected' WHERE id=?", (payment_id,))
+        conn.commit()
+    finally:
+        conn.close()
 
 
-# ─── DOWNLOAD TOKENS ───────────────────────────────────────
+# ── Admin Tokens ──────────────────────────────────────────────
+
+def get_db():
+    """Compatibilidade com server.py que usa get_db() diretamente."""
+    return _conn()
+
+
+# ── Download Tokens ───────────────────────────────────────────
 
 def save_download_token(token, user_id, lic_content, expires_at):
-    """Salva token de download no banco."""
-    conn = get_db()
-    conn.execute(
-        "INSERT OR REPLACE INTO download_tokens (token, user_id, lic_content, expires_at) VALUES (?, ?, ?, ?)",
-        (token, user_id, lic_content, expires_at)
-    )
-    conn.commit()
-    conn.close()
+    conn = _conn()
+    try:
+        _run(conn, """
+            INSERT INTO download_tokens (token, user_id, lic_content, expires_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT (token) DO UPDATE SET lic_content=EXCLUDED.lic_content
+        """ if USE_PG else """
+            INSERT OR REPLACE INTO download_tokens (token, user_id, lic_content, expires_at)
+            VALUES (?, ?, ?, ?)
+        """, (token, user_id, lic_content, expires_at))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def get_download_token(token):
-    """Busca e consome token de download atomicamente (one-time use, sem race condition)."""
-    conn = get_db()
+    conn = _conn()
     try:
-        # Transação imediata: bloqueia o banco para evitar race condition
-        conn.execute("BEGIN IMMEDIATE")
-        row = conn.execute(
-            "SELECT * FROM download_tokens WHERE token=?", (token,)
-        ).fetchone()
-        if row:
-            conn.execute("DELETE FROM download_tokens WHERE token=?", (token,))
-            conn.commit()
-            return dict(row)
-        conn.rollback()
-        return None
+        if USE_PG:
+            conn.autocommit = False
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur.execute("BEGIN")
+            cur.execute("SELECT * FROM download_tokens WHERE token = %s FOR UPDATE", (token,))
+            row = cur.fetchone()
+            if row:
+                cur.execute("DELETE FROM download_tokens WHERE token = %s", (token,))
+                conn.commit()
+                return dict(row)
+            conn.rollback()
+            return None
+        else:
+            conn.execute("BEGIN IMMEDIATE")
+            cur = conn.execute("SELECT * FROM download_tokens WHERE token=?", (token,))
+            row = cur.fetchone()
+            if row:
+                conn.execute("DELETE FROM download_tokens WHERE token=?", (token,))
+                conn.commit()
+                return dict(row)
+            conn.rollback()
+            return None
     except Exception:
         conn.rollback()
         return None
