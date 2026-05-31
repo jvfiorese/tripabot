@@ -323,7 +323,7 @@ def api_report_payment():
     if not user or not check_password(password, user['password_hash']):
         return jsonify({'error': 'Email ou senha incorretos'}), 401
 
-    payment_id = create_payment(user['id'], amount=50.0, notes=notes)
+    payment_id = create_payment(user['id'], amount=20.0, notes=notes)
     return jsonify({
         'success': True,
         'message': 'Pagamento registrado! Aguarde aprovação (normalmente em 24h).',

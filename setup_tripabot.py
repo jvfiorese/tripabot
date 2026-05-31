@@ -443,7 +443,7 @@ def inject_license_code(html_content: str, secret_key: str, server_url: str = 'h
                 Já tenho conta → Entrar e baixar licença
             </a>
 
-            <div class="tb-lic-footer">30 dias grátis · depois R$ 50/ano</div>
+            <div class="tb-lic-footer">30 dias grátis · depois R$ 20/ano</div>
         </div>
     </div>
 
