@@ -414,10 +414,12 @@ def api_admin_generate_lic(user_id):
     })
 
 
+# ─── Inicialização do banco (roda com gunicorn E com python server.py) ────────
+init_db()
+
 # ─── Main ─────────────────────────────────────────────────────
 
 if __name__ == '__main__':
-    init_db()
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('DEBUG', 'True').lower() == 'true'
     print(f"\n{'='*50}")
