@@ -43,7 +43,28 @@ load_dotenv()
 
 SECRET_KEY      = os.environ.get('TRIPABOT_SECRET_KEY', '')
 ADMIN_PASSWORD  = os.environ.get('ADMIN_PASSWORD', '')
-ADMIN_TOKEN_STORE = {}  # token → timestamp (em memória, suficiente para 1 admin)
+
+# Tokens de admin armazenados no SQLite (persiste entre workers e restarts)
+def _admin_token_valid(token):
+    from database import get_db
+    conn = get_db()
+    row = conn.execute(
+        "SELECT 1 FROM admin_tokens WHERE token=? AND expires_at > ?",
+        (token, datetime.now(timezone.utc).isoformat())
+    ).fetchone()
+    conn.close()
+    return row is not None
+
+def _admin_token_save(token):
+    from database import get_db
+    expires = (datetime.now(timezone.utc) + timedelta(hours=8)).isoformat()
+    conn = get_db()
+    conn.execute(
+        "INSERT OR REPLACE INTO admin_tokens (token, expires_at) VALUES (?, ?)",
+        (token, expires)
+    )
+    conn.commit()
+    conn.close()
 
 if not SECRET_KEY:
     print("⚠️  ATENÇÃO: TRIPABOT_SECRET_KEY não definida no .env!")
@@ -71,7 +92,7 @@ def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         token = request.headers.get('X-Admin-Token') or request.args.get('token')
-        if not token or token not in ADMIN_TOKEN_STORE:
+        if not token or not _admin_token_valid(token):
             return jsonify({'error': 'Não autorizado'}), 401
         return f(*args, **kwargs)
     return decorated
@@ -290,7 +311,7 @@ def api_admin_login():
         return jsonify({'error': 'Senha incorreta'}), 401
 
     token = secrets.token_urlsafe(32)
-    ADMIN_TOKEN_STORE[token] = datetime.now(timezone.utc)
+    _admin_token_save(token)
     return jsonify({'success': True, 'token': token})
 
 

@@ -54,6 +54,10 @@ def init_db():
             approved_at TEXT,
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
+        CREATE TABLE IF NOT EXISTS admin_tokens (
+            token       TEXT PRIMARY KEY,
+            expires_at  TEXT NOT NULL
+        );
     """)
     conn.commit()
     conn.close()
