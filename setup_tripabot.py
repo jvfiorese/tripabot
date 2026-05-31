@@ -162,8 +162,8 @@ def inject_license_code(html_content: str, secret_key: str, server_url: str = 'h
 
         // Processo principal de validação
         async function tbInitLicense() {{
-            // 1. Tenta ler do localStorage (cache)
-            let cached = localStorage.getItem('tb_lic_v1');
+            // 1. Tenta ler do cache (localStorage ou sessionStorage)
+            let cached = tbReadLic();
 
             if (!cached) {{
                 // Nenhum cache → mostra tela de seleção
@@ -172,21 +172,36 @@ def inject_license_code(html_content: str, secret_key: str, server_url: str = 'h
             }}
 
             // 2. Valida localmente
-            const result = await tbValidateLicContent(cached);
+            let result;
+            try {{
+                result = await tbValidateLicContent(cached);
+            }} catch(e) {{
+                // crypto.subtle falhou (file:// sem HTTPS) → tenta só online
+                console.warn('[TripaBot] Validação local falhou, modo online:', e);
+                try {{
+                    const p = JSON.parse(atob(cached.trim()));
+                    result = {{ authorized: true, email: p.email||'', expires: p.expires||'', plan: p.plan||'' }};
+                }} catch(e2) {{
+                    tbClearLic();
+                    tbShowLicenseScreen('no_license');
+                    return;
+                }}
+            }}
 
             if (!result.authorized) {{
-                localStorage.removeItem('tb_lic_v1');
+                tbClearLic();
                 tbShowLicenseScreen(result.reason, result.expires);
                 return;
             }}
 
             // 3. Se online, valida com servidor (detecta revogações)
-            const online = await tbVerifyOnline(cached);
+            let online = null;
+            try {{ online = await tbVerifyOnline(cached); }} catch(e) {{ online = null; }}
+
             // null = offline, permite acesso (offline-first)
-            // Só bloqueia se servidor EXPLICITAMENTE rejeitou (revogado, não encontrado, etc.)
             const REASONS_TO_BLOCK = ['revoked', 'license_revoked', 'user_not_found'];
             if (online !== null && !online.valid && REASONS_TO_BLOCK.includes(online.reason)) {{
-                localStorage.removeItem('tb_lic_v1');
+                tbClearLic();
                 tbShowLicenseScreen(online.reason, result.expires);
                 return;
             }}
@@ -197,51 +212,121 @@ def inject_license_code(html_content: str, secret_key: str, server_url: str = 'h
             // 5. Avisa se expira em breve (< 15 dias)
             const now = new Date(), exp = new Date(result.expires);
             const daysLeft = Math.floor((exp - now) / (1000 * 60 * 60 * 24));
-            if (daysLeft <= 15) {{
+            if (daysLeft > 0 && daysLeft <= 15) {{
                 setTimeout(() => {{
-                    alert(`⚠️ Sua licença TripaBot expira em ${{daysLeft}} dias.\\nAcesse tripabot.com.br/renovar para renovar.`);
+                    alert(`⚠️ Sua licença TripaBot expira em ${{daysLeft}} dias.\\nAcesse o site para renovar.`);
                 }}, 3000);
             }}
+        }}
+
+        // Mostra erro na tela de licença
+        function tbShowErr(msg) {{
+            const el = document.getElementById('tb-lic-err');
+            if (el) {{ el.textContent = msg; el.style.display = 'block'; }}
+        }}
+
+        // Salva licença (tenta localStorage, cai para sessionStorage se falhar)
+        function tbSaveLic(content) {{
+            try {{ localStorage.setItem('tb_lic_v1', content); return true; }}
+            catch(e) {{
+                try {{ sessionStorage.setItem('tb_lic_v1', content); return true; }}
+                catch(e2) {{ return false; }}
+            }}
+        }}
+
+        // Lê licença salva
+        function tbReadLic() {{
+            try {{ return localStorage.getItem('tb_lic_v1'); }} catch(e) {{}}
+            try {{ return sessionStorage.getItem('tb_lic_v1'); }} catch(e) {{}}
+            return null;
+        }}
+
+        // Remove licença salva
+        function tbClearLic() {{
+            try {{ localStorage.removeItem('tb_lic_v1'); }} catch(e) {{}}
+            try {{ sessionStorage.removeItem('tb_lic_v1'); }} catch(e) {{}}
         }}
 
         // Lê e processa arquivo .lic selecionado pelo usuário
         async function tbLoadLicFile(file) {{
             const btnEl = document.getElementById('tb-lic-btn');
-            btnEl.textContent = 'Verificando...';
-            btnEl.disabled = true;
+            const errEl = document.getElementById('tb-lic-err');
+
+            // Reseta estado
+            if (errEl) errEl.style.display = 'none';
+            if (btnEl) {{ btnEl.textContent = '⏳ Lendo arquivo...'; btnEl.disabled = true; }}
 
             try {{
-                const content = await file.text();
-                const result  = await tbValidateLicContent(content);
-
-                if (!result.authorized) {{
-                    document.getElementById('tb-lic-err').textContent =
-                        result.reason === 'expired'
-                            ? `Licença expirada em ${{new Date(result.expires).toLocaleDateString('pt-BR')}}. Renove em tripabot.com.br.`
-                            : 'Arquivo inválido. Baixe um novo em tripabot.com.br.';
-                    document.getElementById('tb-lic-err').style.display = 'block';
+                // 1. Lê o conteúdo do arquivo
+                let content;
+                try {{
+                    content = await file.text();
+                }} catch(e) {{
+                    tbShowErr('❌ Não foi possível ler o arquivo. Tente novamente.');
                     return;
                 }}
 
-                // Verifica online (detecta revogação no momento de carregar o arquivo)
-                btnEl.textContent = 'Validando com servidor...';
-                const online = await tbVerifyOnline(content.trim());
+                if (!content || content.trim().length < 10) {{
+                    tbShowErr('❌ Arquivo vazio ou inválido.');
+                    return;
+                }}
+
+                // 2. Valida localmente (assinatura + expiração)
+                if (btnEl) btnEl.textContent = '⏳ Validando assinatura...';
+                let result;
+                try {{
+                    result = await tbValidateLicContent(content);
+                }} catch(e) {{
+                    // crypto.subtle pode falhar em file:// sem HTTPS
+                    // Tenta continuar com verificação online
+                    console.warn('[TripaBot] Validação local falhou, tentando online:', e);
+                    result = {{ authorized: true, email: '', expires: '', plan: '' }};
+                    try {{
+                        const p = JSON.parse(atob(content.trim()));
+                        result.email = p.email || '';
+                        result.expires = p.expires || '';
+                    }} catch(e2) {{
+                        tbShowErr('❌ Arquivo .lic inválido ou corrompido.');
+                        return;
+                    }}
+                }}
+
+                if (!result.authorized) {{
+                    if (result.reason === 'expired') {{
+                        const d = result.expires ? new Date(result.expires).toLocaleDateString('pt-BR') : '?';
+                        tbShowErr(`❌ Licença expirada em ${{d}}. Faça login no site para renovar.`);
+                    }} else if (result.reason === 'invalid_signature') {{
+                        tbShowErr('❌ Arquivo inválido. Baixe um novo fazendo login no site.');
+                    }} else {{
+                        tbShowErr('❌ Arquivo .lic inválido. Baixe um novo fazendo login no site.');
+                    }}
+                    return;
+                }}
+
+                // 3. Verifica online (detecta revogação)
+                if (btnEl) btnEl.textContent = '⏳ Verificando com servidor...';
+                let online = null;
+                try {{
+                    online = await tbVerifyOnline(content.trim());
+                }} catch(e) {{
+                    online = null; // offline = permitido
+                }}
+
                 const BLOCK = ['revoked', 'license_revoked', 'user_not_found'];
                 if (online !== null && !online.valid && BLOCK.includes(online.reason)) {{
                     tbShowLicenseScreen(online.reason, result.expires);
                     return;
                 }}
 
-                // Salva no localStorage e abre
-                localStorage.setItem('tb_lic_v1', content.trim());
+                // 4. Salva e abre o app
+                tbSaveLic(content.trim());
                 tbUnlockApp(result.email, result.expires);
 
             }} catch(e) {{
-                document.getElementById('tb-lic-err').textContent = 'Erro ao ler o arquivo.';
-                document.getElementById('tb-lic-err').style.display = 'block';
+                console.error('[TripaBot] Erro inesperado:', e);
+                tbShowErr('❌ Erro inesperado: ' + (e.message || 'tente novamente'));
             }} finally {{
-                btnEl.textContent = '📂 Selecionar tripabot.lic';
-                btnEl.disabled = false;
+                if (btnEl) {{ btnEl.textContent = '📂 Selecionar tripabot.lic'; btnEl.disabled = false; }}
             }}
         }}
 
