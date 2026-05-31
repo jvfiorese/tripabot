@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TripaBot — Renovar Assinatura</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background:#f0f4f8; min-height:100vh;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+}
+.card {
+    background:white; border-radius:16px;
+    box-shadow:0 4px 24px rgba(0,0,0,0.10);
+    padding:40px 36px; width:100%; max-width:460px;
+    text-align:center;
+}
+h1 { font-size:22px; color:#222; margin-bottom:8px; }
+p  { font-size:14px; color:#666; line-height:1.6; margin-bottom:20px; }
+.price-box {
+    background:#fff8e1; border:2px solid #ffe082; border-radius:12px;
+    padding:20px; margin-bottom:24px;
+}
+.price-box .amount { font-size:42px; font-weight:800; color:#e65100; }
+.price-box .period { font-size:15px; color:#666; }
+.pix-box {
+    background:#e8f5e9; border:2px solid #a5d6a7; border-radius:12px;
+    padding:20px; margin-bottom:24px; text-align:left;
+}
+.pix-box h3 { font-size:14px; font-weight:700; color:#2e7d32; margin-bottom:10px; }
+.pix-key {
+    font-family:monospace; font-size:16px; font-weight:700;
+    background:white; padding:10px 14px; border-radius:8px;
+    border:1px solid #c8e6c9; display:flex; align-items:center;
+    justify-content:space-between;
+}
+.copy-btn {
+    background:#2e7d32; color:white; border:none;
+    padding:5px 12px; border-radius:5px; cursor:pointer; font-size:12px;
+}
+.copy-btn:hover { background:#1b5e20; }
+.steps { text-align:left; font-size:13px; color:#555; line-height:2; margin-bottom:20px; }
+.steps li { list-style:none; }
+.steps li::before { content:"→ "; color:#e85252; font-weight:700; }
+.form-group { margin-bottom:14px; text-align:left; }
+label { font-size:12px; font-weight:600; color:#555; display:block; margin-bottom:4px; }
+input {
+    width:100%; padding:10px 14px; border:1.5px solid #e0e0e0;
+    border-radius:8px; font-size:15px; outline:none;
+}
+input:focus { border-color:#e85252; }
+.btn {
+    width:100%; padding:13px; background:#e85252; color:white;
+    border:none; border-radius:8px; font-size:15px; font-weight:600;
+    cursor:pointer; margin-top:4px;
+}
+.btn:hover { background:#c94444; }
+.msg { margin-top:12px; padding:12px; border-radius:8px; font-size:13px; display:none; }
+.msg.success { background:#e8f5e9; color:#2e7d32; }
+.msg.error   { background:#ffebee; color:#c62828; }
+</style>
+</head>
+<body>
+<div class="card">
+    <h1>🔄 Renovar TripaBot</h1>
+    <p>Renove sua assinatura para continuar usando todas as funcionalidades do TripaBot.</p>
+
+    <div class="price-box">
+        <div class="amount">R$ 50</div>
+        <div class="period">por ano · acesso completo · offline</div>
+    </div>
+
+    <div class="pix-box">
+        <h3>📲 Pague via Pix:</h3>
+        <div class="pix-key">
+            <span id="pix-key">SEU-EMAIL-OU-CHAVE-PIX-AQUI</span>
+            <button class="copy-btn" onclick="copyPix()">Copiar</button>
+        </div>
+        <p style="font-size:12px;color:#666;margin-top:8px;">
+            Após o pagamento, preencha o formulário abaixo e aguarde aprovação.
+        </p>
+    </div>
+
+    <ul class="steps">
+        <li>Transfira R$ 50 para a chave Pix acima</li>
+        <li>Preencha seu email e senha abaixo</li>
+        <li>Clique em "Reportar Pagamento"</li>
+        <li>Aguarde aprovação (normalmente em poucas horas)</li>
+        <li>Faça login em tripabot.com.br e baixe seu novo .lic</li>
+    </ul>
+
+    <div class="form-group">
+        <label>Seu Email</label>
+        <input type="email" id="email" placeholder="seu@email.com">
+    </div>
+    <div class="form-group">
+        <label>Sua Senha</label>
+        <input type="password" id="password" placeholder="••••••••">
+    </div>
+    <div class="form-group">
+        <label>Observações (opcional)</label>
+        <input type="text" id="notes" placeholder="Ex: Paguei às 14h, nome no Pix: João Silva">
+    </div>
+
+    <button class="btn" onclick="reportPayment()">Reportar Pagamento Pix</button>
+    <div id="msg" class="msg"></div>
+</div>
+
+<script>
+// CONFIGURE SUA CHAVE PIX AQUI:
+document.getElementById('pix-key').textContent = 'SEU-EMAIL@GMAIL.COM';
+
+function copyPix() {
+    const key = document.getElementById('pix-key').textContent;
+    navigator.clipboard.writeText(key).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = '✓ Copiado!';
+        setTimeout(() => btn.textContent = 'Copiar', 2000);
+    });
+}
+
+async function reportPayment() {
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const notes    = document.getElementById('notes').value.trim();
+
+    if (!email || !password) {
+        showMsg('error', 'Preencha email e senha.');
+        return;
+    }
+
+    const btn = document.querySelector('.btn');
+    btn.disabled = true; btn.textContent = 'Enviando...';
+
+    try {
+        const res = await fetch('/api/report-payment', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({email, password, notes})
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showMsg('error', data.error || 'Erro ao enviar.');
+            return;
+        }
+
+        showMsg('success', '✓ Pagamento reportado! Aguarde aprovação. Você será notificado e poderá fazer login para baixar sua nova licença.');
+    } catch {
+        showMsg('error', 'Erro de conexão. Tente novamente.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Reportar Pagamento Pix';
+    }
+}
+
+function showMsg(type, text) {
+    const el = document.getElementById('msg');
+    el.className = `msg ${type}`;
+    el.style.display = 'block';
+    el.textContent = text;
+}
+</script>
+</body>
+</html>

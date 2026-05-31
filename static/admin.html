@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TripaBot — Painel Admin</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f0f4f8; min-height:100vh; }
+.header { background:#1a1a2e; color:white; padding:16px 24px; display:flex; align-items:center; justify-content:space-between; }
+.header h1 { font-size:18px; }
+.header span { font-size:12px; color:#aaa; }
+#logout-btn { background:#e85252; border:none; color:white; padding:7px 14px; border-radius:6px; cursor:pointer; font-size:13px; }
+
+/* LOGIN SCREEN */
+#login-screen {
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh; background:#f0f4f8;
+}
+.login-card {
+    background:white; border-radius:14px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.10);
+    padding:36px 32px; width:340px; text-align:center;
+}
+.login-card h2 { font-size:20px; color:#222; margin-bottom:8px; }
+.login-card p  { font-size:13px; color:#888; margin-bottom:24px; }
+.login-card input {
+    width:100%; padding:11px 14px; border:1.5px solid #e0e0e0;
+    border-radius:8px; font-size:15px; outline:none; margin-bottom:12px;
+}
+.login-card input:focus { border-color:#e85252; }
+.login-card button {
+    width:100%; padding:12px; background:#1a1a2e; color:white;
+    border:none; border-radius:8px; font-size:15px; font-weight:600; cursor:pointer;
+}
+.login-card button:hover { background:#e85252; }
+
+/* MAIN APP */
+#app { display:none; }
+.main { max-width:1100px; margin:0 auto; padding:24px; }
+
+/* STATS */
+.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
+.stat-card { background:white; border-radius:10px; padding:18px 20px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+.stat-card .num { font-size:28px; font-weight:800; color:#1a1a2e; }
+.stat-card .label { font-size:12px; color:#888; margin-top:3px; }
+
+/* SECTIONS */
+.section { background:white; border-radius:10px; padding:20px; margin-bottom:20px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+.section-title { font-size:15px; font-weight:700; color:#222; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.badge { background:#ffebee; color:#c62828; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; }
+.badge.green { background:#e8f5e9; color:#2e7d32; }
+.badge.blue { background:#e3f2fd; color:#1565c0; }
+.badge.gray { background:#f5f5f5; color:#666; }
+
+/* TABLES */
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { text-align:left; padding:8px 10px; border-bottom:2px solid #f0f0f0; color:#888; font-size:11px; text-transform:uppercase; letter-spacing:.5px; }
+td { padding:10px; border-bottom:1px solid #f8f8f8; vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:#fafafa; }
+.email { font-weight:600; color:#222; }
+.sub { font-size:11px; color:#aaa; }
+
+/* BUTTONS */
+.btn-approve { background:#2e7d32; color:white; border:none; padding:6px 12px; border-radius:5px; cursor:pointer; font-size:12px; font-weight:600; }
+.btn-approve:hover { background:#1b5e20; }
+.btn-reject { background:#c62828; color:white; border:none; padding:6px 12px; border-radius:5px; cursor:pointer; font-size:12px; }
+.btn-reject:hover { background:#7f0000; }
+.btn-revoke { background:#e0e0e0; color:#555; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:12px; }
+.btn-revoke:hover { background:#bdbdbd; }
+.btn-gen { background:#1565c0; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:12px; }
+.btn-gen:hover { background:#0d47a1; }
+.btn-refresh { background:#f5f5f5; border:1px solid #e0e0e0; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:13px; margin-left:auto; }
+
+/* EMPTY */
+.empty { text-align:center; color:#bbb; padding:24px; font-size:13px; }
+
+/* TOAST */
+#toast { position:fixed; bottom:24px; right:24px; background:#333; color:white; padding:12px 18px; border-radius:8px; font-size:13px; display:none; z-index:999; }
+#toast.success { background:#2e7d32; }
+#toast.error { background:#c62828; }
+
+/* DOWNLOAD LINK */
+.dl-link { color:#1565c0; text-decoration:underline; cursor:pointer; font-size:12px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+    <div class="login-card">
+        <h2>🔐 Painel Admin</h2>
+        <p>TripaBot License Server</p>
+        <input type="password" id="admin-pw" placeholder="Senha do administrador">
+        <button onclick="doAdminLogin()">Entrar</button>
+        <p id="login-err" style="color:#c62828;font-size:12px;margin-top:10px;"></p>
+    </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+    <div class="header">
+        <h1>🩺 TripaBot — Painel Admin</h1>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <span id="last-refresh">—</span>
+            <button id="logout-btn" onclick="logout()">Sair</button>
+        </div>
+    </div>
+
+    <div class="main">
+
+        <!-- STATS -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="num" id="stat-active">—</div>
+                <div class="label">Usuários Ativos</div>
+            </div>
+            <div class="stat-card">
+                <div class="num" id="stat-trial">—</div>
+                <div class="label">Em Trial</div>
+            </div>
+            <div class="stat-card">
+                <div class="num" id="stat-pending">—</div>
+                <div class="label">Pagamentos Pendentes</div>
+            </div>
+            <div class="stat-card">
+                <div class="num" id="stat-expired">—</div>
+                <div class="label">Expirados</div>
+            </div>
+        </div>
+
+        <!-- PAGAMENTOS PENDENTES -->
+        <div class="section">
+            <div class="section-title">
+                💳 Pagamentos Pendentes
+                <span class="badge" id="badge-pending">0</span>
+                <button class="btn-refresh" onclick="loadAll()">↻ Atualizar</button>
+            </div>
+            <div id="payments-container">
+                <div class="empty">Nenhum pagamento pendente</div>
+            </div>
+        </div>
+
+        <!-- TODOS OS USUÁRIOS -->
+        <div class="section">
+            <div class="section-title">👥 Todos os Usuários</div>
+            <div id="users-container">
+                <div class="empty">Carregando...</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let ADMIN_TOKEN = '';
+
+// ─── LOGIN ───────────────────────────────────────────────────
+
+async function doAdminLogin() {
+    const pw = document.getElementById('admin-pw').value;
+    if (!pw) return;
+
+    const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({password: pw})
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+        document.getElementById('login-err').textContent = data.error || 'Senha incorreta';
+        return;
+    }
+
+    ADMIN_TOKEN = data.token;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadAll();
+}
+
+function logout() {
+    ADMIN_TOKEN = '';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+}
+
+function authHeaders() {
+    return { 'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_TOKEN };
+}
+
+// ─── DADOS ───────────────────────────────────────────────────
+
+async function loadAll() {
+    await Promise.all([loadUsers(), loadPayments()]);
+    document.getElementById('last-refresh').textContent =
+        'Atualizado ' + new Date().toLocaleTimeString('pt-BR');
+}
+
+async function loadPayments() {
+    const res = await fetch('/api/admin/payments', { headers: authHeaders() });
+    const payments = await res.json();
+
+    document.getElementById('badge-pending').textContent = payments.length;
+    document.getElementById('stat-pending').textContent = payments.length;
+
+    const container = document.getElementById('payments-container');
+    if (!payments.length) {
+        container.innerHTML = '<div class="empty">Nenhum pagamento pendente ✓</div>';
+        return;
+    }
+
+    container.innerHTML = `
+    <table>
+        <thead>
+            <tr>
+                <th>Usuário</th>
+                <th>Valor</th>
+                <th>Data</th>
+                <th>Observações</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+        ${payments.map(p => `
+            <tr id="payment-row-${p.id}">
+                <td>
+                    <div class="email">${p.email}</div>
+                    <div class="sub">${p.name || '—'}</div>
+                </td>
+                <td><strong>R$ ${p.amount.toFixed(2)}</strong></td>
+                <td>${formatDate(p.created_at)}</td>
+                <td>${p.notes || '—'}</td>
+                <td style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="btn-approve" onclick="approvePayment(${p.id}, '${p.email}')">✓ Aprovar</button>
+                    <button class="btn-reject" onclick="rejectPayment(${p.id})">✗ Rejeitar</button>
+                </td>
+            </tr>
+        `).join('')}
+        </tbody>
+    </table>`;
+}
+
+async function loadUsers() {
+    const res = await fetch('/api/admin/users', { headers: authHeaders() });
+    const users = await res.json();
+
+    // Atualiza stats
+    document.getElementById('stat-active').textContent  = users.filter(u => u.status === 'active').length;
+    document.getElementById('stat-trial').textContent   = users.filter(u => u.status === 'trial').length;
+    document.getElementById('stat-expired').textContent = users.filter(u => u.status === 'expired' || u.status === 'revoked').length;
+
+    const container = document.getElementById('users-container');
+    if (!users.length) {
+        container.innerHTML = '<div class="empty">Nenhum usuário cadastrado ainda</div>';
+        return;
+    }
+
+    container.innerHTML = `
+    <table>
+        <thead>
+            <tr>
+                <th>Email / Nome</th>
+                <th>Status</th>
+                <th>Trial Expira</th>
+                <th>Pago Expira</th>
+                <th>Cadastro</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+        ${users.map(u => `
+            <tr id="user-row-${u.id}">
+                <td>
+                    <div class="email">${u.email}</div>
+                    <div class="sub">${u.name || '—'}</div>
+                </td>
+                <td>${statusBadge(u.status)}</td>
+                <td>${formatDate(u.trial_expires) || '—'}</td>
+                <td>${formatDate(u.paid_expires) || '—'}</td>
+                <td>${formatDate(u.created_at)}</td>
+                <td style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="btn-gen" onclick="genLic(${u.id}, 365)">+ 1 ano</button>
+                    <button class="btn-gen" style="background:#5c6bc0" onclick="genLic(${u.id}, 30)">+ 30 dias</button>
+                    ${u.status !== 'revoked'
+                        ? `<button class="btn-revoke" onclick="revokeUser(${u.id})">Revogar</button>`
+                        : ''}
+                </td>
+            </tr>
+        `).join('')}
+        </tbody>
+    </table>`;
+}
+
+// ─── AÇÕES ───────────────────────────────────────────────────
+
+async function approvePayment(paymentId, email) {
+    if (!confirm(`Aprovar pagamento de ${email}? Isso irá gerar uma licença anual (365 dias).`)) return;
+
+    const res = await fetch(`/api/admin/approve/${paymentId}`, {
+        method: 'POST', headers: authHeaders()
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+        toast('Erro ao aprovar: ' + (data.error || ''), 'error');
+        return;
+    }
+
+    // Mostra link de download
+    const row = document.getElementById(`payment-row-${paymentId}`);
+    if (row) {
+        row.querySelector('td:last-child').innerHTML =
+            `✓ Aprovado! <a class="dl-link" href="${data.download_url}" target="_blank">Baixar .lic</a>`;
+    }
+
+    toast(`✓ Licença gerada para ${email}! Link de download disponível.`, 'success');
+    setTimeout(loadAll, 1500);
+}
+
+async function rejectPayment(paymentId) {
+    if (!confirm('Rejeitar este pagamento?')) return;
+
+    await fetch(`/api/admin/reject/${paymentId}`, {
+        method: 'POST', headers: authHeaders()
+    });
+    toast('Pagamento rejeitado.', '');
+    setTimeout(loadAll, 1000);
+}
+
+async function revokeUser(userId) {
+    if (!confirm('ATENÇÃO: Isso vai revogar IMEDIATAMENTE o acesso deste usuário. Confirmar?')) return;
+
+    const res = await fetch(`/api/admin/revoke/${userId}`, {
+        method: 'POST', headers: authHeaders()
+    });
+
+    if (res.ok) {
+        toast('Acesso revogado.', '');
+        setTimeout(loadUsers, 1000);
+    }
+}
+
+async function genLic(userId, days) {
+    const label = days === 365 ? '1 ano' : `${days} dias`;
+    if (!confirm(`Gerar licença de ${label} para este usuário?`)) return;
+
+    const res = await fetch(`/api/admin/generate-lic/${userId}`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({days})
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+        toast('Erro: ' + (data.error || ''), 'error');
+        return;
+    }
+
+    toast(`✓ Licença gerada para ${data.email}! Expira: ${formatDate(data.expires_at)}`, 'success');
+
+    // Abre link de download automaticamente
+    window.open(data.download_url, '_blank');
+    setTimeout(loadAll, 1500);
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────
+
+function statusBadge(status) {
+    const map = {
+        active:  '<span class="badge green">✓ Ativo</span>',
+        trial:   '<span class="badge blue">Trial</span>',
+        expired: '<span class="badge">Expirado</span>',
+        revoked: '<span class="badge">Revogado</span>',
+    };
+    return map[status] || `<span class="badge gray">${status}</span>`;
+}
+
+function formatDate(iso) {
+    if (!iso) return null;
+    try { return new Date(iso).toLocaleDateString('pt-BR'); }
+    catch { return iso; }
+}
+
+function toast(msg, type='') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = type;
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 4000);
+}
+
+// Enter no campo de senha
+document.getElementById('admin-pw').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doAdminLogin();
+});
+</script>
+</body>
+</html>
