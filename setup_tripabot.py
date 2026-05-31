@@ -131,21 +131,22 @@ def inject_license_code(html_content: str, secret_key: str, server_url: str = 'h
             screen.style.display = 'flex';
 
             const msgEl = document.getElementById('tb-lic-msg');
+            const siteUrl = _tbServer;
             if (reason === 'no_license') {{
                 msgEl.innerHTML = 'Selecione seu arquivo <strong>tripabot.lic</strong> para continuar.';
             }} else if (reason === 'expired') {{
                 const d = expires ? new Date(expires).toLocaleDateString('pt-BR') : '—';
-                msgEl.innerHTML = `Sua licença expirou em <strong>${{d}}</strong>.<br>Renove em <a href="/renovar" target="_blank">tripabot.com.br/renovar</a>.`;
+                msgEl.innerHTML = `Sua licença expirou em <strong>${{d}}</strong>.<br>Acesse o site para renovar.`;
             }} else if (reason === 'invalid_signature') {{
-                msgEl.innerHTML = 'Arquivo de licença inválido ou corrompido.<br>Faça login em <a href="/" target="_blank">tripabot.com.br</a> para baixar novamente.';
+                msgEl.innerHTML = '⚠️ Arquivo de licença inválido ou corrompido.<br>Faça login no site para baixar novamente.';
             }} else if (reason === 'revoked') {{
-                msgEl.innerHTML = '<strong>⊘ Acesso Revogado</strong><br>Sua licença foi cancelada pelo administrador.<br>Entre em contato para mais informações.';
+                msgEl.innerHTML = '⊘ <strong>Acesso Revogado</strong><br>Sua licença foi cancelada pelo administrador.<br>Entre em contato para mais informações.';
             }} else if (reason === 'server_error') {{
-                msgEl.innerHTML = '<strong>⚠️ Erro no Servidor</strong><br>Não conseguimos validar sua licença.<br>Tente novamente ou contate o suporte.';
+                msgEl.innerHTML = '⚠️ <strong>Erro no Servidor</strong><br>Não conseguimos validar sua licença.<br>Tente novamente mais tarde.';
             }} else if (reason === 'connection_failed') {{
-                msgEl.innerHTML = '<strong>📡 Sem Conexão</strong><br>Não conseguimos conectar ao servidor.<br>Certifique-se de que está conectado à internet.';
+                msgEl.innerHTML = '📡 <strong>Sem Conexão</strong><br>Verifique sua internet e tente novamente.';
             }} else {{
-                msgEl.innerHTML = 'Arquivo de licença inválido. Baixe um novo em <a href="/" target="_blank">tripabot.com.br</a>.';
+                msgEl.innerHTML = 'Arquivo de licença inválido.<br>Faça login no site para baixar novamente.';
             }}
         }}
 
@@ -255,7 +256,7 @@ def inject_license_code(html_content: str, secret_key: str, server_url: str = 'h
 
     license_css = """
         /* ── TELA DE LICENÇA TRIPABOT ─────────────────────── */
-        #tb-license-screen {
+        #tb-license-screen {{
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -264,41 +265,63 @@ def inject_license_code(html_content: str, secret_key: str, server_url: str = 'h
             align-items: center;
             justify-content: center;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-        .tb-lic-card {
+        }}
+        .tb-lic-card {{
             background: white;
             border-radius: 16px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.12);
             padding: 40px 36px;
             width: 100%;
-            max-width: 420px;
+            max-width: 440px;
             text-align: center;
-        }
-        .tb-lic-card h2 { font-size: 22px; color: #e85252; font-weight: 800; margin-bottom: 6px; }
-        .tb-lic-card .sub { font-size: 13px; color: #888; margin-bottom: 24px; }
-        #tb-lic-msg { font-size: 14px; color: #444; line-height: 1.6; margin-bottom: 20px; }
-        #tb-lic-msg a { color: #e85252; }
-        .tb-lic-btn {
-            display: inline-block; padding: 13px 28px;
+        }}
+        .tb-lic-logo {{ font-size: 36px; margin-bottom: 8px; }}
+        .tb-lic-card h2 {{ font-size: 24px; color: #e85252; font-weight: 800; margin-bottom: 4px; }}
+        .tb-lic-card .sub {{ font-size: 13px; color: #999; margin-bottom: 28px; }}
+        #tb-lic-msg {{ font-size: 14px; color: #555; line-height: 1.7; margin-bottom: 20px;
+                        background: #f8f9fa; border-radius: 8px; padding: 12px 16px; }}
+        #tb-lic-msg strong {{ color: #e85252; }}
+        .tb-lic-btn {{
+            display: block; padding: 13px 28px;
             background: #e85252; color: white;
             border: none; border-radius: 8px;
             font-size: 15px; font-weight: 600; cursor: pointer;
-            margin-bottom: 12px; width: 100%;
-        }
-        .tb-lic-btn:hover { background: #c94444; }
-        .tb-lic-btn:disabled { background: #ccc; cursor: not-allowed; }
-        #tb-lic-err { color: #c62828; font-size: 12px; display: none; margin-top: 8px; }
-        .tb-lic-links { margin-top: 16px; font-size: 12px; color: #aaa; }
-        .tb-lic-links a { color: #888; }
+            margin-bottom: 10px; width: 100%;
+            text-decoration: none;
+        }}
+        .tb-lic-btn:hover {{ background: #c94444; }}
+        .tb-lic-btn:disabled {{ background: #ccc; cursor: not-allowed; }}
+        .tb-lic-btn-outline {{
+            display: block; padding: 11px 28px;
+            background: white; color: #e85252;
+            border: 2px solid #e85252; border-radius: 8px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            margin-bottom: 10px; width: 100%;
+            text-decoration: none; box-sizing: border-box;
+        }}
+        .tb-lic-btn-outline:hover {{ background: #fff5f5; }}
+        #tb-lic-err {{ color: #c62828; font-size: 12px; display: none; margin-top: 8px;
+                        background: #ffebee; padding: 8px 12px; border-radius: 6px; }}
+        .tb-lic-divider {{ display: flex; align-items: center; gap: 10px;
+                            margin: 16px 0; color: #ccc; font-size: 12px; }}
+        .tb-lic-divider::before, .tb-lic-divider::after {{
+            content: ''; flex: 1; height: 1px; background: #eee; }}
+        .tb-lic-footer {{ margin-top: 20px; font-size: 11px; color: #bbb; }}
     """
 
-    license_html = """
+    license_html = f"""
     <!-- TELA DE LICENÇA TRIPABOT -->
     <div id="tb-license-screen">
         <div class="tb-lic-card">
-            <h2>🩺 TripaBot</h2>
+            <div class="tb-lic-logo">🩺</div>
+            <h2>TripaBot</h2>
             <p class="sub">Padronização Médica · Gastroenterologia HBDF</p>
-            <div id="tb-lic-msg">Selecione seu arquivo <strong>tripabot.lic</strong> para continuar.</div>
+
+            <div id="tb-lic-msg">
+                Selecione seu arquivo <strong>tripabot.lic</strong> para continuar.
+            </div>
+
+            <!-- Selecionar .lic existente -->
             <input type="file" id="tb-lic-input" accept=".lic" style="display:none"
                 onchange="if(this.files[0]) tbLoadLicFile(this.files[0])">
             <button id="tb-lic-btn" class="tb-lic-btn"
@@ -306,9 +329,22 @@ def inject_license_code(html_content: str, secret_key: str, server_url: str = 'h
                 📂 Selecionar tripabot.lic
             </button>
             <div id="tb-lic-err"></div>
-            <div class="tb-lic-links">
-                <a href="/" target="_blank">Registrar / Renovar licença</a>
-            </div>
+
+            <div class="tb-lic-divider">ou</div>
+
+            <!-- Criar conta nova -->
+            <a href="{server_url}" target="_blank" class="tb-lic-btn-outline">
+                ✨ Criar conta grátis (30 dias)
+            </a>
+
+            <!-- Já tem conta, renovar -->
+            <a href="{server_url}/?tab=login" target="_blank" style="
+                display: block; font-size: 13px; color: #888;
+                text-decoration: none; margin-top: 8px; padding: 6px;">
+                Já tenho conta → Entrar e baixar licença
+            </a>
+
+            <div class="tb-lic-footer">30 dias grátis · depois R$ 50/ano</div>
         </div>
     </div>
 

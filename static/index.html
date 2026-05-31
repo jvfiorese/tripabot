@@ -248,6 +248,10 @@ async function doLogin() {
     }
 }
 
+// Abre aba correta via query string (?tab=login)
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('tab') === 'login') showTab('login');
+
 // Enter para submeter
 document.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
