@@ -138,6 +138,21 @@ def renovar():
     return send_from_directory('static', 'renovar.html')
 
 
+@app.route('/download-html')
+def download_html():
+    """Força download do tripabot.html (com Content-Disposition: attachment)."""
+    import os
+    html_path = os.path.join(app.static_folder, 'tripabot.html')
+    if not os.path.exists(html_path):
+        return jsonify({'error': 'Arquivo não encontrado'}), 404
+    return send_from_directory(
+        app.static_folder,
+        'tripabot.html',
+        as_attachment=True,
+        download_name='TripaBot.html'
+    )
+
+
 # ─── API Pública ─────────────────────────────────────────────
 
 @app.route('/api/register', methods=['POST'])
