@@ -11,7 +11,7 @@ DB_PATH = os.environ.get('DB_PATH', os.path.join(os.path.dirname(__file__), 'tri
 
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -64,6 +64,11 @@ def init_db():
             lic_content TEXT NOT NULL,
             expires_at  TEXT NOT NULL
         );
+        CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+        CREATE INDEX IF NOT EXISTS idx_licenses_user_id ON licenses(user_id);
+        CREATE INDEX IF NOT EXISTS idx_licenses_email ON licenses(email);
+        CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
+        CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
     """)
     conn.commit()
     conn.close()

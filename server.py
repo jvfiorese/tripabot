@@ -51,6 +51,7 @@ load_dotenv()
 
 SECRET_KEY      = os.environ.get('TRIPABOT_SECRET_KEY', '')
 ADMIN_PASSWORD  = os.environ.get('ADMIN_PASSWORD', '')
+PIX_KEY         = os.environ.get('PIX_KEY', 'Configure PIX_KEY no .env')
 
 # Tokens de admin armazenados no SQLite (persiste entre workers e restarts)
 def _admin_token_valid(token):
@@ -138,10 +139,15 @@ def renovar():
     return send_from_directory('static', 'renovar.html')
 
 
+@app.route('/api/config')
+def api_config():
+    """Configurações públicas do servidor (sem dados sensíveis)."""
+    return jsonify({'pix_key': PIX_KEY})
+
+
 @app.route('/download-html')
 def download_html():
     """Força download do tripabot.html (com Content-Disposition: attachment)."""
-    import os
     html_path = os.path.join(app.static_folder, 'tripabot.html')
     if not os.path.exists(html_path):
         return jsonify({'error': 'Arquivo não encontrado'}), 404
@@ -429,7 +435,11 @@ def api_admin_revoke(user_id):
 def api_admin_generate_lic(user_id):
     """Admin gera licença manual para um usuário (30 ou 365 dias)."""
     data = request.get_json(silent=True) or {}
-    days = int(data.get('days', 365))
+    try:
+        days = int(data.get('days', 365))
+        days = max(1, min(days, 3650))  # entre 1 dia e 10 anos
+    except (ValueError, TypeError):
+        days = 365
 
     user = get_user_by_id(user_id)
     if not user:

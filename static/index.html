@@ -196,6 +196,11 @@ async function doRegister() {
 
         showMsg('reg-msg', 'success', '✓ Conta criada! Baixe os arquivos abaixo.');
 
+        // Limpa campos após cadastro bem-sucedido
+        document.getElementById('reg-name').value = '';
+        document.getElementById('reg-email').value = '';
+        document.getElementById('reg-password').value = '';
+
         // Configura link de download do .lic
         document.getElementById('dl-lic').href = `/api/download-lic/${data.download_token}`;
         document.getElementById('reg-download').style.display = 'block';

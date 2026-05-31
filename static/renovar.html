@@ -109,8 +109,19 @@ input:focus { border-color:#e85252; }
 </div>
 
 <script>
-// CONFIGURE SUA CHAVE PIX AQUI:
-document.getElementById('pix-key').textContent = 'SEU-EMAIL@GMAIL.COM';
+const EMAIL_RE = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+// Carrega chave Pix do servidor
+async function loadPixKey() {
+    try {
+        const res = await fetch('/api/config');
+        const cfg = await res.json();
+        if (cfg.pix_key) document.getElementById('pix-key').textContent = cfg.pix_key;
+    } catch(e) {
+        document.getElementById('pix-key').textContent = 'Erro ao carregar chave Pix';
+    }
+}
+loadPixKey();
 
 function copyPix() {
     const key = document.getElementById('pix-key').textContent;
@@ -122,12 +133,20 @@ function copyPix() {
 }
 
 async function reportPayment() {
-    const email    = document.getElementById('email').value.trim();
+    const email    = document.getElementById('email').value.trim().toLowerCase();
     const password = document.getElementById('password').value;
-    const notes    = document.getElementById('notes').value.trim();
+    const notes    = document.getElementById('notes').value.trim().slice(0, 500);
 
     if (!email || !password) {
         showMsg('error', 'Preencha email e senha.');
+        return;
+    }
+    if (!EMAIL_RE.test(email)) {
+        showMsg('error', 'Email inválido. Verifique e tente novamente.');
+        return;
+    }
+    if (password.length < 6) {
+        showMsg('error', 'Senha deve ter no mínimo 6 caracteres.');
         return;
     }
 
@@ -143,13 +162,20 @@ async function reportPayment() {
         const data = await res.json();
 
         if (!res.ok) {
-            showMsg('error', data.error || 'Erro ao enviar.');
+            showMsg('error', data.error || 'Erro ao enviar. Verifique seu email e senha.');
             return;
         }
 
-        showMsg('success', '✓ Pagamento reportado! Aguarde aprovação. Você será notificado e poderá fazer login para baixar sua nova licença.');
-    } catch {
-        showMsg('error', 'Erro de conexão. Tente novamente.');
+        showMsg('success',
+            '✅ Pagamento registrado com sucesso!\n\n' +
+            'Próximos passos:\n' +
+            '1. Aguarde aprovação (normalmente em até 24h)\n' +
+            '2. Após aprovação, faça login em tripabot.com.br\n' +
+            '3. Baixe seu novo tripabot.lic e substitua o antigo'
+        );
+        document.querySelector('.btn').style.display = 'none';
+    } catch(e) {
+        showMsg('error', 'Erro de conexão. Verifique sua internet e tente novamente.');
     } finally {
         btn.disabled = false;
         btn.textContent = 'Reportar Pagamento Pix';
@@ -160,6 +186,7 @@ function showMsg(type, text) {
     const el = document.getElementById('msg');
     el.className = `msg ${type}`;
     el.style.display = 'block';
+    el.style.whiteSpace = 'pre-line';
     el.textContent = text;
 }
 </script>

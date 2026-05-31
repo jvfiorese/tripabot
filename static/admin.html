@@ -41,6 +41,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 /* STATS */
 .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
+@media (max-width: 700px) {
+    .stats { grid-template-columns: repeat(2,1fr); }
+    table { font-size: 12px; }
+    th, td { padding: 6px 4px; }
+}
+/* OVERFLOW EM TABELAS */
+.section { overflow-x: auto; }
 .stat-card { background:white; border-radius:10px; padding:18px 20px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
 .stat-card .num { font-size:28px; font-weight:800; color:#1a1a2e; }
 .stat-card .label { font-size:12px; color:#888; margin-top:3px; }
@@ -156,7 +163,21 @@ tr:hover td { background:#fafafa; }
 <div id="toast"></div>
 
 <script>
-let ADMIN_TOKEN = '';
+// Token em sessionStorage (persiste no reload, limpa ao fechar aba)
+let ADMIN_TOKEN = sessionStorage.getItem('tb_admin_token') || '';
+
+// Se já tinha token, tenta carregar direto
+if (ADMIN_TOKEN) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadAll().catch(() => {
+        // Token expirado
+        ADMIN_TOKEN = '';
+        sessionStorage.removeItem('tb_admin_token');
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('app').style.display = 'none';
+    });
+}
 
 // ─── HELPERS DE SEGURANÇA ────────────────────────────────────
 function esc(text) {
@@ -185,6 +206,7 @@ async function doAdminLogin() {
     }
 
     ADMIN_TOKEN = data.token;
+    sessionStorage.setItem('tb_admin_token', ADMIN_TOKEN);
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     loadAll();
@@ -192,6 +214,7 @@ async function doAdminLogin() {
 
 function logout() {
     ADMIN_TOKEN = '';
+    sessionStorage.removeItem('tb_admin_token');
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
 }
@@ -203,9 +226,14 @@ function authHeaders() {
 // ─── DADOS ───────────────────────────────────────────────────
 
 async function loadAll() {
-    await Promise.all([loadUsers(), loadPayments()]);
-    document.getElementById('last-refresh').textContent =
-        'Atualizado ' + new Date().toLocaleTimeString('pt-BR');
+    try {
+        await Promise.all([loadUsers(), loadPayments()]);
+        document.getElementById('last-refresh').textContent =
+            'Atualizado ' + new Date().toLocaleTimeString('pt-BR');
+    } catch(e) {
+        toast('Erro ao carregar dados. Verifique sua conexão.', 'error');
+        throw e; // re-lança para detecção de token expirado
+    }
 }
 
 async function loadPayments() {
@@ -234,7 +262,7 @@ async function loadPayments() {
         </thead>
         <tbody>
         ${payments.map(p => `
-            <tr id="payment-row-${p.id}">
+            <tr id="payment-row-${p.id}" data-email="${esc(p.email)}">
                 <td>
                     <div class="email">${esc(p.email)}</div>
                     <div class="sub">${esc(p.name)}</div>
@@ -243,7 +271,7 @@ async function loadPayments() {
                 <td>${formatDate(p.created_at)}</td>
                 <td>${esc(p.notes)}</td>
                 <td style="display:flex;gap:6px;flex-wrap:wrap;">
-                    <button class="btn-approve" onclick="approvePayment(${p.id}, '${esc(p.email)}')">✓ Aprovar</button>
+                    <button class="btn-approve" onclick="approvePayment(${p.id})">✓ Aprovar</button>
                     <button class="btn-reject" onclick="rejectPayment(${p.id})">✗ Rejeitar</button>
                 </td>
             </tr>
@@ -305,8 +333,10 @@ async function loadUsers() {
 
 // ─── AÇÕES ───────────────────────────────────────────────────
 
-async function approvePayment(paymentId, email) {
-    if (!confirm(`Aprovar pagamento de ${email}? Isso irá gerar uma licença anual (365 dias).`)) return;
+async function approvePayment(paymentId) {
+    const row = document.getElementById(`payment-row-${paymentId}`);
+    const email = row ? row.dataset.email : '?';
+    if (!confirm(`Aprovar pagamento de ${email}?\nIsso irá gerar uma licença anual (365 dias).`)) return;
 
     const res = await fetch(`/api/admin/approve/${paymentId}`, {
         method: 'POST', headers: authHeaders()
@@ -335,7 +365,7 @@ async function rejectPayment(paymentId) {
     await fetch(`/api/admin/reject/${paymentId}`, {
         method: 'POST', headers: authHeaders()
     });
-    toast('Pagamento rejeitado.', '');
+    toast('Pagamento rejeitado.', 'error');
     setTimeout(loadAll, 1000);
 }
 

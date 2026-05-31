@@ -107,7 +107,7 @@ def inject_license_code(html_content: str, secret_key: str, server_url: str = 'h
             try {{
                 const p = JSON.parse(atob(licContent.trim()));
                 const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
+                const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
                 const res = await fetch(_tbServer + '/api/verify', {{
                     method:'POST',
                     headers:{{'Content-Type':'application/json'}},
@@ -209,13 +209,17 @@ def inject_license_code(html_content: str, secret_key: str, server_url: str = 'h
             // 4. Tudo OK!
             tbUnlockApp(result.email, result.expires);
 
-            // 5. Avisa se expira em breve (< 15 dias)
+            // 5. Avisa se expira em breve (< 15 dias) — toast não bloqueante
             const now = new Date(), exp = new Date(result.expires);
             const daysLeft = Math.floor((exp - now) / (1000 * 60 * 60 * 24));
             if (daysLeft > 0 && daysLeft <= 15) {{
                 setTimeout(() => {{
-                    alert(`⚠️ Sua licença TripaBot expira em ${{daysLeft}} dias.\\nAcesse o site para renovar.`);
-                }}, 3000);
+                    const toast = document.createElement('div');
+                    toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#e65100;color:white;padding:14px 18px;border-radius:8px;font-size:13px;z-index:99999;max-width:280px;line-height:1.5;box-shadow:0 4px 12px rgba(0,0,0,0.2)';
+                    toast.textContent = `⚠️ Sua licença expira em ${{daysLeft}} dia${{daysLeft>1?'s':''}}.`;
+                    document.body.appendChild(toast);
+                    setTimeout(() => toast.remove(), 8000);
+                }}, 2000);
             }}
         }}
 
@@ -330,10 +334,13 @@ def inject_license_code(html_content: str, secret_key: str, server_url: str = 'h
             }}
         }}
 
-        // Inicia sistema de licença ao carregar
-        window.addEventListener('DOMContentLoaded', () => {{
+        // Inicia sistema de licença — funciona mesmo se DOM já carregou
+        if (document.readyState === 'loading') {{
+            window.addEventListener('DOMContentLoaded', tbInitLicense);
+        }} else {{
+            // DOM já está pronto (script carregado de forma diferida)
             tbInitLicense();
-        }});
+        }}
         // ======================================================
         // FIM SISTEMA DE LICENÇA
         // ======================================================
@@ -357,6 +364,7 @@ def inject_license_code(html_content: str, secret_key: str, server_url: str = 'h
             box-shadow: 0 4px 24px rgba(0,0,0,0.12);
             padding: 40px 36px;
             width: 100%;
+            min-width: 280px;
             max-width: 440px;
             text-align: center;
         }
@@ -437,19 +445,51 @@ def inject_license_code(html_content: str, secret_key: str, server_url: str = 'h
     <div id="tb-app" style="display:none">
     """
 
-    # Injeta CSS no final do bloco <style>
-    html_content = html_content.replace('    </style>\n</head>', license_css + '\n    </style>\n</head>', 1)
+    # ── Injeção com validação de sucesso ─────────────────────────
+    original = html_content
 
-    # Injeta HTML da tela de licença e wrapping do app
-    html_content = html_content.replace('<body>\n    <div class="container">', '<body>\n' + license_html + '    <div class="container">', 1)
+    # 1. CSS
+    css_marker = '</style>\n</head>'
+    if css_marker not in html_content:
+        # Tenta variante sem espaços no início da linha
+        css_marker = '</style>\n</head>'
+    new_content = html_content.replace(css_marker, license_css + '\n' + css_marker, 1)
+    if new_content == html_content:
+        print("⚠️  Aviso: Não encontrou </style></head> para injetar CSS. Adicionando antes de </head>.")
+        new_content = html_content.replace('</head>', '<style>' + license_css + '</style>\n</head>', 1)
+    html_content = new_content
 
-    # Fecha o div do app antes de </body>
+    # 2. HTML da tela de licença
+    body_marker = '<body>'
+    # Procura qualquer variante de abertura do body
+    import re as _re
+    body_match = _re.search(r'<body[^>]*>', html_content)
+    if body_match:
+        end_of_body_tag = body_match.end()
+        html_content = html_content[:end_of_body_tag] + '\n' + license_html + html_content[end_of_body_tag:]
+    else:
+        print("❌ ERRO: Não encontrou <body> no HTML. Verifique o TripaBot.html original.")
+        sys.exit(1)
+
+    # 3. Fecha o div do app antes de </body>
     html_content = html_content.replace('\n</body>', '\n    </div><!-- #tb-app -->\n</body>', 1)
 
-    # Injeta JS antes do fechamento do </script>
-    # Procura o último </script> e injeta antes dele
-    last_script_close = html_content.rfind('    </script>')
-    html_content = html_content[:last_script_close] + license_js + '\n    </script>' + html_content[last_script_close + len('    </script>'):]
+    # 4. Injeta JS antes do último </script>
+    last_script_close = html_content.rfind('</script>')
+    if last_script_close == -1:
+        print("❌ ERRO: Não encontrou </script> no HTML.")
+        sys.exit(1)
+    html_content = html_content[:last_script_close] + license_js + '\n    </script>' + html_content[last_script_close + len('</script>'):]
+
+    # 5. Valida que injeção foi bem-sucedida
+    missing = []
+    if 'tbInitLicense' not in html_content: missing.append('tbInitLicense')
+    if 'tb-license-screen' not in html_content: missing.append('tb-license-screen')
+    if 'tb-app' not in html_content: missing.append('tb-app')
+    if missing:
+        print(f"❌ ERRO CRÍTICO: Injeção incompleta! Faltando: {missing}")
+        print("   O arquivo HTML pode ter estrutura diferente do esperado.")
+        sys.exit(1)
 
     return html_content
 
