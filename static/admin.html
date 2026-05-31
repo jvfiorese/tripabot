@@ -163,21 +163,7 @@ tr:hover td { background:#fafafa; }
 <div id="toast"></div>
 
 <script>
-// Token em sessionStorage (persiste no reload, limpa ao fechar aba)
-let ADMIN_TOKEN = sessionStorage.getItem('tb_admin_token') || '';
-
-// Se já tinha token, tenta carregar direto
-if (ADMIN_TOKEN) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    loadAll().catch(() => {
-        // Token expirado
-        ADMIN_TOKEN = '';
-        sessionStorage.removeItem('tb_admin_token');
-        document.getElementById('login-screen').style.display = 'flex';
-        document.getElementById('app').style.display = 'none';
-    });
-}
+let ADMIN_TOKEN = '';
 
 // ─── HELPERS DE SEGURANÇA ────────────────────────────────────
 function esc(text) {
@@ -206,7 +192,6 @@ async function doAdminLogin() {
     }
 
     ADMIN_TOKEN = data.token;
-    sessionStorage.setItem('tb_admin_token', ADMIN_TOKEN);
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     loadAll();
@@ -214,7 +199,6 @@ async function doAdminLogin() {
 
 function logout() {
     ADMIN_TOKEN = '';
-    sessionStorage.removeItem('tb_admin_token');
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
 }
