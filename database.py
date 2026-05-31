@@ -5,7 +5,7 @@ TripaBot License Server — Módulo de Banco de Dados (SQLite)
 
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 
 DB_PATH = os.environ.get('DB_PATH', os.path.join(os.path.dirname(__file__), 'tripabot.db'))
 
@@ -73,7 +73,7 @@ def init_db():
 def create_user(email, password_hash, name=None):
     conn = get_db()
     try:
-        now = datetime.utcnow().isoformat() + 'Z'
+        now = datetime.now(timezone.utc).isoformat()
         conn.execute(
             "INSERT INTO users (email, password_hash, name, created_at) VALUES (?, ?, ?, ?)",
             (email.lower().strip(), password_hash, name, now)
@@ -135,7 +135,7 @@ def update_user_trial(user_id, trial_expires):
 
 def update_last_verified(user_id):
     conn = get_db()
-    now = datetime.utcnow().isoformat() + 'Z'
+    now = datetime.now(timezone.utc).isoformat()
     conn.execute("UPDATE users SET last_verified=? WHERE id=?", (now, user_id))
     conn.commit()
     conn.close()
@@ -143,7 +143,7 @@ def update_last_verified(user_id):
 
 def save_license(user_id, email, issued_at, expires_at, plan, lic_content):
     conn = get_db()
-    now = datetime.utcnow().isoformat() + 'Z'
+    now = datetime.now(timezone.utc).isoformat()
     conn.execute("""
         INSERT INTO licenses (user_id, email, issued_at, expires_at, plan, lic_content, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -182,7 +182,7 @@ def is_license_revoked(email, issued_at):
 
 def create_payment(user_id, amount=50.0, notes=''):
     conn = get_db()
-    now = datetime.utcnow().isoformat() + 'Z'
+    now = datetime.now(timezone.utc).isoformat()
     conn.execute(
         "INSERT INTO payments (user_id, amount, notes, created_at) VALUES (?, ?, ?, ?)",
         (user_id, amount, notes, now)
@@ -208,7 +208,7 @@ def get_pending_payments():
 
 def approve_payment(payment_id):
     conn = get_db()
-    now = datetime.utcnow().isoformat() + 'Z'
+    now = datetime.now(timezone.utc).isoformat()
     conn.execute("UPDATE payments SET status='approved', approved_at=? WHERE id=?", (now, payment_id))
     conn.commit()
     conn.close()
@@ -235,13 +235,22 @@ def save_download_token(token, user_id, lic_content, expires_at):
 
 
 def get_download_token(token):
-    """Busca e consome token de download (one-time use)."""
+    """Busca e consome token de download atomicamente (one-time use, sem race condition)."""
     conn = get_db()
-    row = conn.execute(
-        "SELECT * FROM download_tokens WHERE token=?", (token,)
-    ).fetchone()
-    if row:
-        conn.execute("DELETE FROM download_tokens WHERE token=?", (token,))
-        conn.commit()
-    conn.close()
-    return dict(row) if row else None
+    try:
+        # Transação imediata: bloqueia o banco para evitar race condition
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            "SELECT * FROM download_tokens WHERE token=?", (token,)
+        ).fetchone()
+        if row:
+            conn.execute("DELETE FROM download_tokens WHERE token=?", (token,))
+            conn.commit()
+            return dict(row)
+        conn.rollback()
+        return None
+    except Exception:
+        conn.rollback()
+        return None
+    finally:
+        conn.close()

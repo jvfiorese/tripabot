@@ -19,9 +19,11 @@ Rotas:
 """
 
 import os
+import re
 import json
 import base64
 import secrets
+import logging
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 
@@ -29,6 +31,11 @@ import bcrypt
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, send_from_directory, abort, Response
 from flask_cors import CORS
+
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
+
+EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
 
 from database import (
     init_db, create_user, get_user_by_email, get_user_by_id, get_all_users,
@@ -74,9 +81,16 @@ if not ADMIN_PASSWORD:
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 
-# CORS: permite requisições de qualquer origem, incluindo file://
-# Necessário para o HTML funcionar quando aberto localmente (file://)
+# CORS: permite file:// (HTML offline) + domínio em produção
 CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# Headers de segurança em todas as respostas
+@app.after_request
+def set_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
 
 # ─── Helpers ─────────────────────────────────────────────────
 
@@ -138,7 +152,7 @@ def api_register():
         return jsonify({'error': 'Email e senha são obrigatórios'}), 400
     if len(password) < 6:
         return jsonify({'error': 'Senha deve ter no mínimo 6 caracteres'}), 400
-    if '@' not in email:
+    if not EMAIL_REGEX.match(email):
         return jsonify({'error': 'Email inválido'}), 400
 
     pw_hash = hash_password(password)
@@ -250,16 +264,18 @@ def api_verify():
 
 @app.route('/api/download-lic/<token>')
 def download_lic(token):
-    """Download do arquivo tripabot.lic via token temporário."""
-    token_data = get_download_token(token)  # busca e remove (one-time use)
+    """Download do arquivo tripabot.lic via token temporário (one-time use)."""
+    token_data = get_download_token(token)
     if not token_data:
         return jsonify({'error': 'Link expirado ou inválido. Faça login novamente.'}), 404
 
-    # Verifica expiração
-    from datetime import datetime as dt
-    expires_at = token_data['expires_at']
-    if expires_at < datetime.now(timezone.utc).isoformat():
-        return jsonify({'error': 'Link expirado. Faça login novamente.'}), 410
+    # Verifica expiração com datetime aware
+    try:
+        expires_dt = datetime.fromisoformat(token_data['expires_at'].replace('Z', '+00:00'))
+        if datetime.now(timezone.utc) > expires_dt:
+            return jsonify({'error': 'Link expirado. Faça login novamente.'}), 410
+    except ValueError:
+        return jsonify({'error': 'Token inválido'}), 404
 
     return Response(
         token_data['lic_content'],
@@ -290,17 +306,38 @@ def api_report_payment():
 
 # ─── API Admin ────────────────────────────────────────────────
 
+_ADMIN_FAIL_ATTEMPTS = {}  # {ip: {'count': N, 'since': datetime}}
+
 @app.route('/api/admin/login', methods=['POST'])
 def api_admin_login():
-    """Login do admin com senha do .env."""
+    """Login do admin com senha do .env. Rate limiting: 5 tentativas/5min."""
+    ip = request.remote_addr or 'unknown'
+    now = datetime.now(timezone.utc)
+
+    # Rate limiting
+    if ip in _ADMIN_FAIL_ATTEMPTS:
+        info = _ADMIN_FAIL_ATTEMPTS[ip]
+        if info['count'] >= 5 and (now - info['since']).seconds < 300:
+            logger.warning(f"[ADMIN] Rate limit atingido para IP {ip}")
+            return jsonify({'error': 'Muitas tentativas. Aguarde 5 minutos.'}), 429
+        if (now - info['since']).seconds >= 300:
+            _ADMIN_FAIL_ATTEMPTS.pop(ip, None)
+
     data = request.get_json(silent=True) or {}
     password = (data.get('password') or '').strip()
 
     if not ADMIN_PASSWORD or password != ADMIN_PASSWORD:
+        info = _ADMIN_FAIL_ATTEMPTS.get(ip, {'count': 0, 'since': now})
+        info['count'] += 1
+        info['since'] = info.get('since', now)
+        _ADMIN_FAIL_ATTEMPTS[ip] = info
+        logger.warning(f"[ADMIN] Senha incorreta para IP {ip} (tentativa {info['count']})")
         return jsonify({'error': 'Senha incorreta'}), 401
 
+    _ADMIN_FAIL_ATTEMPTS.pop(ip, None)
     token = secrets.token_urlsafe(32)
     _admin_token_save(token)
+    logger.info(f"[ADMIN] Login bem-sucedido de IP {ip}")
     return jsonify({'success': True, 'token': token})
 
 
@@ -365,8 +402,10 @@ def api_admin_reject(payment_id):
 @admin_required
 def api_admin_revoke(user_id):
     """Revoga todo o acesso de um usuário."""
+    user = get_user_by_id(user_id)
     revoke_all_licenses(user_id)
     update_user_status(user_id, 'revoked')
+    logger.warning(f"[ADMIN] Usuário revogado: id={user_id} email={user['email'] if user else '?'}")
     return jsonify({'success': True})
 
 

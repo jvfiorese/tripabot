@@ -158,6 +158,14 @@ tr:hover td { background:#fafafa; }
 <script>
 let ADMIN_TOKEN = '';
 
+// ─── HELPERS DE SEGURANÇA ────────────────────────────────────
+function esc(text) {
+    if (!text) return '—';
+    return String(text).replace(/[&<>"']/g, m => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+    }[m]));
+}
+
 // ─── LOGIN ───────────────────────────────────────────────────
 
 async function doAdminLogin() {
@@ -228,14 +236,14 @@ async function loadPayments() {
         ${payments.map(p => `
             <tr id="payment-row-${p.id}">
                 <td>
-                    <div class="email">${p.email}</div>
-                    <div class="sub">${p.name || '—'}</div>
+                    <div class="email">${esc(p.email)}</div>
+                    <div class="sub">${esc(p.name)}</div>
                 </td>
                 <td><strong>R$ ${p.amount.toFixed(2)}</strong></td>
                 <td>${formatDate(p.created_at)}</td>
-                <td>${p.notes || '—'}</td>
+                <td>${esc(p.notes)}</td>
                 <td style="display:flex;gap:6px;flex-wrap:wrap;">
-                    <button class="btn-approve" onclick="approvePayment(${p.id}, '${p.email}')">✓ Aprovar</button>
+                    <button class="btn-approve" onclick="approvePayment(${p.id}, '${esc(p.email)}')">✓ Aprovar</button>
                     <button class="btn-reject" onclick="rejectPayment(${p.id})">✗ Rejeitar</button>
                 </td>
             </tr>
@@ -275,8 +283,8 @@ async function loadUsers() {
         ${users.map(u => `
             <tr id="user-row-${u.id}">
                 <td>
-                    <div class="email">${u.email}</div>
-                    <div class="sub">${u.name || '—'}</div>
+                    <div class="email">${esc(u.email)}</div>
+                    <div class="sub">${esc(u.name)}</div>
                 </td>
                 <td>${statusBadge(u.status)}</td>
                 <td>${formatDate(u.trial_expires) || '—'}</td>

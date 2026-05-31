@@ -380,6 +380,8 @@ def main():
     # 4. Lê URL do servidor
     server_url = env.get('TRIPABOT_SERVER_URL', 'http://localhost:5000').rstrip('/')
     print(f"✓ URL do servidor: {server_url}")
+    if not server_url.startswith('https://') and 'localhost' not in server_url and '127.0.0.1' not in server_url:
+        print("⚠️  AVISO: TRIPABOT_SERVER_URL não usa HTTPS. Inseguro em produção!")
 
     # 5. Injeta código de licença
     print("✓ Injetando sistema de licença...")
