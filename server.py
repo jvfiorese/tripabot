@@ -311,7 +311,7 @@ _ADMIN_FAIL_ATTEMPTS = {}  # {ip: {'count': N, 'since': datetime}}
 @app.route('/api/admin/login', methods=['POST'])
 def api_admin_login():
     """Login do admin com senha do .env. Rate limiting: 5 tentativas/5min."""
-    ip = request.remote_addr or 'unknown'
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr or 'unknown').split(',')[0].strip()
     now = datetime.now(timezone.utc)
 
     # Rate limiting
