@@ -334,35 +334,67 @@ def api_report_payment():
 
 # ─── API Admin ────────────────────────────────────────────────
 
-_ADMIN_FAIL_ATTEMPTS = {}  # {ip: {'count': N, 'since': datetime}}
+def _rate_limit_check(ip: str) -> bool:
+    """Retorna True se o IP está bloqueado (>= 5 falhas nos últimos 5 min). Persiste no banco."""
+    from database import _run, _one, _conn
+    now = datetime.now(timezone.utc)
+    window_start = (now - timedelta(minutes=5)).isoformat()
+    conn = _conn()
+    try:
+        cur = _run(conn, """
+            SELECT COUNT(*) as cnt FROM login_attempts
+            WHERE ip=? AND created_at > ?
+        """, (ip, window_start))
+        row = _one(cur)
+        return (row['cnt'] if row else 0) >= 5
+    except Exception:
+        return False
+    finally:
+        conn.close()
+
+def _rate_limit_record(ip: str):
+    """Registra uma tentativa falha para o IP."""
+    from database import _run, _conn
+    conn = _conn()
+    try:
+        _run(conn, "INSERT INTO login_attempts (ip, created_at) VALUES (?, ?)",
+             (ip, datetime.now(timezone.utc).isoformat()))
+        conn.commit()
+    except Exception:
+        pass
+    finally:
+        conn.close()
+
+def _rate_limit_clear(ip: str):
+    """Remove tentativas falhas do IP após login bem-sucedido."""
+    from database import _run, _conn
+    conn = _conn()
+    try:
+        _run(conn, "DELETE FROM login_attempts WHERE ip=?", (ip,))
+        conn.commit()
+    except Exception:
+        pass
+    finally:
+        conn.close()
 
 @app.route('/api/admin/login', methods=['POST'])
 def api_admin_login():
-    """Login do admin com senha do .env. Rate limiting: 5 tentativas/5min."""
+    """Login do admin com senha do .env. Rate limiting persistente: 5 tentativas/5min."""
     ip = request.headers.get('X-Forwarded-For', request.remote_addr or 'unknown').split(',')[0].strip()
-    now = datetime.now(timezone.utc)
 
-    # Rate limiting
-    if ip in _ADMIN_FAIL_ATTEMPTS:
-        info = _ADMIN_FAIL_ATTEMPTS[ip]
-        if info['count'] >= 5 and (now - info['since']).seconds < 300:
-            logger.warning(f"[ADMIN] Rate limit atingido para IP {ip}")
-            return jsonify({'error': 'Muitas tentativas. Aguarde 5 minutos.'}), 429
-        if (now - info['since']).seconds >= 300:
-            _ADMIN_FAIL_ATTEMPTS.pop(ip, None)
+    if _rate_limit_check(ip):
+        logger.warning(f"[ADMIN] Rate limit atingido para IP {ip}")
+        return jsonify({'error': 'Muitas tentativas. Aguarde 5 minutos.'}), 429
 
     data = request.get_json(silent=True) or {}
     password = (data.get('password') or '').strip()
 
     if not ADMIN_PASSWORD or password != ADMIN_PASSWORD:
-        info = _ADMIN_FAIL_ATTEMPTS.get(ip, {'count': 0, 'since': now})
-        info['count'] += 1
-        info['since'] = info.get('since', now)
-        _ADMIN_FAIL_ATTEMPTS[ip] = info
-        logger.warning(f"[ADMIN] Senha incorreta para IP {ip} (tentativa {info['count']})")
+        _rate_limit_record(ip)
+        logger.warning(f"[ADMIN] Senha incorreta para IP {ip}")
         return jsonify({'error': 'Senha incorreta'}), 401
 
-    _ADMIN_FAIL_ATTEMPTS.pop(ip, None)
+    _rate_limit_clear(ip)
     token = secrets.token_urlsafe(32)
     _admin_token_save(token)
     logger.info(f"[ADMIN] Login bem-sucedido de IP {ip}")

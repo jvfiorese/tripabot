@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -606,6 +606,23 @@
             content: ''; flex: 1; height: 1px; background: #eee; }
         .tb-lic-footer { margin-top: 20px; font-size: 11px; color: #bbb; }
     
+
+        /* -- TOAST GLOBAL ----------------------------------------- */
+        #tb-global-toast {
+            position: fixed; bottom: 24px; right: 24px; z-index: 99999;
+            display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+        }
+        .tb-toast {
+            padding: 11px 18px; border-radius: 8px; font-size: 13px;
+            color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            max-width: 320px; line-height: 1.4; pointer-events: auto;
+            animation: tbToastIn 0.2s ease;
+        }
+        .tb-toast.success { background: #2e7d32; }
+        .tb-toast.error   { background: #c62828; }
+        .tb-toast.warning { background: #e65100; }
+        .tb-toast.info    { background: #1565c0; }
+        @keyframes tbToastIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 </style>
 </head>
 <body>
@@ -2508,7 +2525,7 @@ REGRAS ADICIONAIS:
                 console.log('processarProntuario finalizado com sucesso');
             } catch (e) {
                 console.error('ERRO em processarProntuario:', e);
-                alert('❌ Erro ao processar prontuário: ' + e.message);
+                showToast('❌ Erro ao processar prontuário: ' + e.message, 'error', 4000);
             }
         }
 
@@ -2516,21 +2533,21 @@ REGRAS ADICIONAIS:
         function copiarExames() {
             const texto = document.getElementById('output-exames').value;
             navigator.clipboard.writeText(texto).then(() => {
-                alert('✓ Copiado!');
+                showToast('✓ Copiado!', 'success', 1500);
             });
         }
 
         function copiarProntuario() {
             const texto = document.getElementById('output-prontuario').value;
             navigator.clipboard.writeText(texto).then(() => {
-                alert('✓ Copiado!');
+                showToast('✓ Copiado!', 'success', 1500);
             });
         }
 
         function copiarNaoClassificado() {
             const texto = document.getElementById('output-nao-classificado').value;
             navigator.clipboard.writeText(texto).then(() => {
-                alert('✓ Conteúdo não classificado copiado!');
+                showToast('✓ Copiado!', 'success', 1500);
             });
         }
 
@@ -2553,7 +2570,7 @@ REGRAS ADICIONAIS:
                 texto = document.querySelector('#tab-2 code').textContent;
             }
             navigator.clipboard.writeText(texto).then(() => {
-                alert('✓ Prompt copiado!');
+                showToast('✓ Prompt copiado!', 'success', 1500);
             });
         }
 
@@ -2567,7 +2584,7 @@ REGRAS ADICIONAIS:
                 const resultado = document.getElementById('resultado-receita');
 
                 if (!input) {
-                    alert('Cole a(s) medicação(ões) primeiro!');
+                    showToast('Cole as medicações primeiro!', 'warning', 3000);
                     return;
                 }
 
@@ -2578,14 +2595,14 @@ REGRAS ADICIONAIS:
                 console.log('processarReceita finalizado com sucesso');
             } catch (e) {
                 console.error('ERRO em processarReceita:', e);
-                alert('❌ Erro ao processar receita: ' + e.message);
+                showToast('❌ Erro ao processar receita: ' + e.message, 'error', 4000);
             }
         }
 
         function copiarReceita() {
             const texto = document.getElementById('output-receita').value;
             navigator.clipboard.writeText(texto).then(() => {
-                alert('✓ Receita copiada!');
+                showToast('✓ Receita copiada!', 'success', 1500);
             });
         }
 
@@ -3732,7 +3749,7 @@ DIA DO EXAME:
                 console.log('abrirCategoria completo para:', categoria);
             } catch (e) {
                 console.error('ERRO em abrirCategoria:', e);
-                alert('❌ Erro ao abrir categoria: ' + e.message);
+                showToast('❌ Erro ao abrir categoria: ' + e.message, 'error', 4000);
             }
         }
 
@@ -3924,7 +3941,7 @@ DIA DO EXAME:
             }
 
             if (partes.length === 0) {
-                alert('⚠️ Selecione pelo menos um tipo de insulina e informe as doses!');
+                showToast('⚠️ Selecione pelo menos um tipo de insulina e informe as doses!', 'warning', 3500);
                 return;
             }
 
@@ -3956,7 +3973,7 @@ SINAIS DE ALERTA:
             localStorage.setItem('modelos_editados', JSON.stringify(editados));
 
             navigator.clipboard.writeText(receita).then(() => {
-                alert('✅ Receita de insulina gerada e copiada!');
+                showToast('✅ Receita de insulina gerada e copiada!', 'success', 2000);
             });
         }
         // ============ FIM CALCULADORA INSULINA ============
@@ -4092,7 +4109,7 @@ SINAIS DE ALERTA:
 
         function copiarEvolucao() {
             const txt = document.getElementById('output-evolucao').value;
-            navigator.clipboard.writeText(txt).then(() => alert('✅ Evolução copiada!'));
+            navigator.clipboard.writeText(txt).then(() => showToast('✅ Evolução copiada!', 'success', 1500));
         }
         // ============ FIM GERADOR DE EVOLUÇÃO ============
 
@@ -4107,7 +4124,7 @@ SINAIS DE ALERTA:
             const timing = document.querySelector('input[name="gas-timing"]:checked').value;
 
             if (isNaN(pH) || isNaN(pCO2) || isNaN(HCO3)) {
-                alert('⚠️ Preencha pelo menos pH, pCO₂ e HCO₃⁻!');
+                showToast('⚠️ Preencha pelo menos pH, pCO2 e HCO3!', 'warning', 3000);
                 return;
             }
             const alb = isNaN(albumin) ? 4.0 : albumin;
@@ -4246,18 +4263,18 @@ SINAIS DE ALERTA:
         function copiarModelo() {
             const conteudo = document.getElementById('conteudo-modelo').value;
             navigator.clipboard.writeText(conteudo).then(() => {
-                alert('✓ Modelo copiado!');
+                showToast('✓ Modelo copiado!', 'success', 1500);
             });
         }
 
         function deletarModelo() {
             if (!isModeloCustomizado) {
-                alert('Só é possível deletar modelos customizados!');
+                showToast('Só é possível deletar modelos customizados!', 'warning', 3000);
                 return;
             }
             if (confirm(`Tem certeza que quer deletar "${modeloAtual}"?`)) {
                 deletarModeloCustomizado(categoriaAtual, modeloAtual);
-                alert('✓ Modelo deletado!');
+                showToast('✓ Modelo deletado!', 'success', 2000);
                 voltarModelos();
                 abrirCategoria(categoriaAtual);
             }
@@ -4293,7 +4310,7 @@ SINAIS DE ALERTA:
             if (!editados[categoriaAtual]) editados[categoriaAtual] = {};
             editados[categoriaAtual][modeloAtual] = novoConteudo;
             localStorage.setItem('modelos_editados', JSON.stringify(editados));
-            alert('✓ Alterações salvas!');
+            showToast('✓ Alterações salvas!', 'success', 2000);
             finalizarEdicao();
             // Atualizar indicador no nome
             const nomeEl = document.getElementById('nome-modelo');
@@ -4335,7 +4352,7 @@ SINAIS DE ALERTA:
             finalizarEdicao();
             const nomeEl = document.getElementById('nome-modelo');
             nomeEl.innerHTML = nomeEl.innerHTML.replace(/ <span[^>]*>\(editado\)<\/span>/, '');
-            alert('✓ Modelo restaurado ao original!');
+            showToast('✓ Modelo restaurado ao original!', 'success', 2000);
         }
 
         function abrirTelaNovoModelo() {
@@ -4352,16 +4369,16 @@ SINAIS DE ALERTA:
             const conteudo = document.getElementById('novo-modelo-conteudo').value.trim();
 
             if (!nome) {
-                alert('Digite um nome para o modelo!');
+                showToast('Digite um nome para o modelo!', 'warning', 2500);
                 return;
             }
             if (!conteudo) {
-                alert('Digite o conteúdo do modelo!');
+                showToast('Digite o conteúdo do modelo!', 'warning', 2500);
                 return;
             }
 
             salvarModeloCustomizado(categoriaAtual, nome, conteudo);
-            alert(`✓ Modelo "${nome}" salvo!`);
+            showToast(`✓ Modelo "${nome}" salvo!`, 'success', 2000);
             document.getElementById('tela-novo-modelo').style.display = 'none';
             abrirCategoria(categoriaAtual);
         }
@@ -4666,7 +4683,25 @@ SINAIS DE ALERTA:
         // FIM SISTEMA DE LICENÇA
         // ======================================================
     
-    </script>
+    
+        // -- TOAST GLOBAL (substitui alert) --------------------------
+        function showToast(msg, type, duration) {
+            type = type || 'info'; duration = duration || 2500;
+            var container = document.getElementById('tb-global-toast');
+            if (!container) { console.log(msg); return; }
+            var el = document.createElement('div');
+            el.className = 'tb-toast ' + type;
+            el.textContent = msg;
+            container.appendChild(el);
+            setTimeout(function() {
+                el.style.opacity = '0';
+                el.style.transition = 'opacity 0.3s';
+                setTimeout(function() { el.remove(); }, 300);
+            }, duration);
+        }
+
+        </script>
     </div><!-- #tb-app -->
+    <div id="tb-global-toast"></div>
 </body>
 </html>

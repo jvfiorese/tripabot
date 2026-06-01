@@ -115,11 +115,17 @@ def init_db():
                 lic_content TEXT NOT NULL,
                 expires_at TEXT NOT NULL
             )""",
+            """CREATE TABLE IF NOT EXISTS login_attempts (
+                id SERIAL PRIMARY KEY,
+                ip TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )""",
             "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
             "CREATE INDEX IF NOT EXISTS idx_lic_uid ON licenses(user_id)",
             "CREATE INDEX IF NOT EXISTS idx_lic_email ON licenses(email)",
             "CREATE INDEX IF NOT EXISTS idx_pay_uid ON payments(user_id)",
             "CREATE INDEX IF NOT EXISTS idx_pay_status ON payments(status)",
+            "CREATE INDEX IF NOT EXISTS idx_attempts_ip ON login_attempts(ip)",
         ]
         for stmt in statements:
             cur.execute(stmt)
@@ -168,11 +174,17 @@ def init_db():
                 lic_content TEXT NOT NULL,
                 expires_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS login_attempts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
             CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
             CREATE INDEX IF NOT EXISTS idx_lic_uid ON licenses(user_id);
             CREATE INDEX IF NOT EXISTS idx_lic_email ON licenses(email);
             CREATE INDEX IF NOT EXISTS idx_pay_uid ON payments(user_id);
             CREATE INDEX IF NOT EXISTS idx_pay_status ON payments(status);
+            CREATE INDEX IF NOT EXISTS idx_attempts_ip ON login_attempts(ip);
         """)
 
     conn.commit()

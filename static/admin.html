@@ -319,75 +319,113 @@ async function loadUsers() {
 
 // ─── AÇÕES ───────────────────────────────────────────────────
 
+const _busy = new Set(); // debounce: evita double-click em ações async
+
 async function approvePayment(paymentId) {
+    if (_busy.has(`approve-${paymentId}`)) return;
+    _busy.add(`approve-${paymentId}`);
+
     const row = document.getElementById(`payment-row-${paymentId}`);
     const email = row ? row.dataset.email : '?';
-    if (!confirm(`Aprovar pagamento de ${email}?\nIsso irá gerar uma licença anual (365 dias).`)) return;
-
-    const res = await fetch(`/api/admin/approve/${paymentId}`, {
-        method: 'POST', headers: authHeaders()
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-        toast('Erro ao aprovar: ' + (data.error || ''), 'error');
+    if (!confirm(`Aprovar pagamento de ${email}?\nIsso irá gerar uma licença anual (365 dias).`)) {
+        _busy.delete(`approve-${paymentId}`);
         return;
     }
 
-    // Mostra link de download
-    if (row) {
-        row.querySelector('td:last-child').innerHTML =
-            `✓ Aprovado! <a class="dl-link" href="${data.download_url}" target="_blank">Baixar .lic</a>`;
-    }
+    const btn = row ? row.querySelector('.btn-approve') : null;
+    if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
 
-    toast(`✓ Licença gerada para ${email}! Link de download disponível.`, 'success');
-    setTimeout(loadAll, 1500);
+    try {
+        const res = await fetch(`/api/admin/approve/${paymentId}`, {
+            method: 'POST', headers: authHeaders()
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            toast('Erro ao aprovar: ' + (data.error || ''), 'error');
+            return;
+        }
+
+        if (row) {
+            row.querySelector('td:last-child').innerHTML =
+                `✓ Aprovado! <a class="dl-link" href="${data.download_url}" target="_blank">Baixar .lic</a>`;
+        }
+
+        toast(`✓ Licença gerada para ${email}! Link de download disponível.`, 'success');
+        setTimeout(loadAll, 1500);
+    } finally {
+        _busy.delete(`approve-${paymentId}`);
+    }
 }
 
 async function rejectPayment(paymentId) {
-    if (!confirm('Rejeitar este pagamento?')) return;
+    if (_busy.has(`reject-${paymentId}`)) return;
+    _busy.add(`reject-${paymentId}`);
 
-    await fetch(`/api/admin/reject/${paymentId}`, {
-        method: 'POST', headers: authHeaders()
-    });
-    toast('Pagamento rejeitado.', 'error');
-    setTimeout(loadAll, 1000);
+    if (!confirm('Rejeitar este pagamento?')) { _busy.delete(`reject-${paymentId}`); return; }
+
+    try {
+        await fetch(`/api/admin/reject/${paymentId}`, {
+            method: 'POST', headers: authHeaders()
+        });
+        toast('Pagamento rejeitado.', 'error');
+        setTimeout(loadAll, 1000);
+    } finally {
+        _busy.delete(`reject-${paymentId}`);
+    }
 }
 
 async function revokeUser(userId) {
-    if (!confirm('ATENÇÃO: Isso vai revogar IMEDIATAMENTE o acesso deste usuário. Confirmar?')) return;
+    if (_busy.has(`revoke-${userId}`)) return;
+    _busy.add(`revoke-${userId}`);
 
-    const res = await fetch(`/api/admin/revoke/${userId}`, {
-        method: 'POST', headers: authHeaders()
-    });
+    if (!confirm('ATENÇÃO: Isso vai revogar IMEDIATAMENTE o acesso deste usuário. Confirmar?')) {
+        _busy.delete(`revoke-${userId}`);
+        return;
+    }
 
-    if (res.ok) {
-        toast('Acesso revogado.', 'success');
-        setTimeout(loadUsers, 1000);
+    try {
+        const res = await fetch(`/api/admin/revoke/${userId}`, {
+            method: 'POST', headers: authHeaders()
+        });
+        if (res.ok) {
+            toast('Acesso revogado.', 'success');
+            setTimeout(loadUsers, 1000);
+        } else {
+            toast('Erro ao revogar acesso.', 'error');
+        }
+    } finally {
+        _busy.delete(`revoke-${userId}`);
     }
 }
 
 async function genLic(userId, days) {
+    const key = `gen-${userId}-${days}`;
+    if (_busy.has(key)) return;
+    _busy.add(key);
+
     const label = days === 365 ? '1 ano' : `${days} dias`;
-    if (!confirm(`Gerar licença de ${label} para este usuário?`)) return;
+    if (!confirm(`Gerar licença de ${label} para este usuário?`)) { _busy.delete(key); return; }
 
-    const res = await fetch(`/api/admin/generate-lic/${userId}`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({days})
-    });
-    const data = await res.json();
+    try {
+        const res = await fetch(`/api/admin/generate-lic/${userId}`, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({days})
+        });
+        const data = await res.json();
 
-    if (!res.ok) {
-        toast('Erro: ' + (data.error || ''), 'error');
-        return;
+        if (!res.ok) {
+            toast('Erro: ' + (data.error || ''), 'error');
+            return;
+        }
+
+        toast(`✓ Licença gerada para ${data.email}! Expira: ${formatDate(data.expires_at)}`, 'success');
+        window.open(data.download_url, '_blank');
+        setTimeout(loadAll, 1500);
+    } finally {
+        _busy.delete(key);
     }
-
-    toast(`✓ Licença gerada para ${data.email}! Expira: ${formatDate(data.expires_at)}`, 'success');
-
-    // Abre link de download automaticamente
-    window.open(data.download_url, '_blank');
-    setTimeout(loadAll, 1500);
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────
