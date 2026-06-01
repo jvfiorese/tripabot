@@ -478,7 +478,8 @@ def api_admin_login():
     password = (data.get('password') or '').strip()
 
     # P1-E: Comparação timing-safe para prevenir timing attacks
-    if not hmac.compare_digest(password, ADMIN_PASSWORD):
+    # Ambos devem ser strings não-vazias
+    if not password or not ADMIN_PASSWORD or not hmac.compare_digest(password, ADMIN_PASSWORD):
         _rate_limit_record(ip)
         logger.warning(f"[ADMIN] Senha incorreta: IP {ip}")
         return jsonify({'error': 'Senha incorreta'}), 401
