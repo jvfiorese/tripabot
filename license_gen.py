@@ -63,7 +63,6 @@ def generate_license(email: str, days: int) -> dict:
         'plan':             plan,
         'nonce':            nonce,
         'sig':              signature,
-        'last_check_forced': issued_at,  # Forced check-in: inicialmnte é a emissão
     }
 
     # Serializa e codifica em base64

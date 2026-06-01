@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -623,7 +623,53 @@
         .tb-toast.warning { background: #e65100; }
         .tb-toast.info    { background: #1565c0; }
         @keyframes tbToastIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-</style>
+
+        /* ── MENU DE CONTA ───────────────────────────────────── */
+        #tb-account-btn {
+            position: fixed; top: 14px; right: 14px; z-index: 9999;
+            background: #e85252; color: white; border: none;
+            width: 38px; height: 38px; border-radius: 50%;
+            font-size: 16px; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.15s;
+        }
+        #tb-account-btn:hover { background: #c94444; }
+        #tb-account-panel {
+            position: fixed; top: 60px; right: 14px; z-index: 9998;
+            background: white; border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            padding: 18px 20px; min-width: 240px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            display: none;
+        }
+        #tb-account-panel.open { display: block; }
+        .tb-acc-email { font-size: 13px; font-weight: 700; color: #222; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; }
+        .tb-acc-plan { font-size: 11px; color: #888; margin-bottom: 12px; }
+        .tb-acc-expires { font-size: 12px; color: #555; margin-bottom: 6px; }
+        .tb-acc-bar-wrap { background: #eee; border-radius: 4px; height: 6px; margin-bottom: 14px; }
+        .tb-acc-bar { height: 6px; border-radius: 4px; transition: width 0.3s; }
+        .tb-acc-bar.green  { background: #27ae60; }
+        .tb-acc-bar.yellow { background: #f39c12; }
+        .tb-acc-bar.red    { background: #e74c3c; }
+        .tb-acc-divider { border: none; border-top: 1px solid #f0f0f0; margin: 10px 0; }
+        .tb-acc-link {
+            display: block; width: 100%; text-align: left;
+            background: none; border: none; padding: 8px 0;
+            font-size: 13px; cursor: pointer; color: #444;
+            text-decoration: none;
+        }
+        .tb-acc-link:hover { color: #e85252; }
+        .tb-acc-renew {
+            display: block; width: 100%; text-align: center;
+            background: #e85252; color: white; border: none;
+            padding: 9px; border-radius: 7px; font-size: 13px;
+            font-weight: 600; cursor: pointer; text-decoration: none;
+            margin-top: 4px;
+        }
+        .tb-acc-renew:hover { background: #c94444; }
+        .tb-acc-version { font-size: 10px; color: #ccc; text-align: center; margin-top: 10px; }
+        </style>
 </head>
 <body>
 
@@ -4388,374 +4434,174 @@ SINAIS DE ALERTA:
         // Veja os botões HTML para o ponto de entrada
     
         // ======================================================
-        // SISTEMA DE LICENÇA TRIPABOT — NÃO MODIFIQUE
+        // SISTEMA DE LICENÇA TRIPABOT v2.0 — ONLINE ONLY
         // ======================================================
 
-        // URL do servidor de licenças (absoluta, funciona offline e online)
         const _tbServer = 'https://tripabot-production.up.railway.app';
 
-        // Valida conteúdo do arquivo .lic (formato e datas apenas — HMAC verificado no servidor)
-        // A verificação de assinatura HMAC é feita exclusivamente em /api/verify (servidor).
-        // O cliente valida apenas: formato JSON, campos obrigatórios e data de expiração.
-        // Isso impede que a chave secreta seja exposta no código client-side.
+        // Valida conteúdo da licença (formato e datas)
         async function tbValidateLicContent(licContent) {
             try {
                 const p = JSON.parse(atob(licContent.trim()));
-                // Valida campos obrigatórios
                 if (!p.email || !p.issued || !p.expires || !p.sig || !p.nonce) {
                     return {authorized:false, reason:'invalid_format'};
                 }
-                // Valida formato de email básico
                 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email)) {
                     return {authorized:false, reason:'invalid_format'};
                 }
-                // Valida data de expiração
-                const now = new Date(), exp = new Date(p.expires);
-                if (isNaN(exp.getTime())) return {authorized:false, reason:'invalid_format'};
-                if (now > exp) return {authorized:false, reason:'expired', expires:p.expires, email:p.email};
-                return {authorized:true, email:p.email, expires:p.expires, plan:p.plan};
+                const now   = new Date();
+                const exp   = new Date(p.expires);
+                const start = new Date(p.issued);
+                if (isNaN(exp.getTime()) || isNaN(start.getTime())) {
+                    return {authorized:false, reason:'invalid_dates'};
+                }
+                if (now > exp) return {authorized:false, reason:'expired', expires_at:p.expires, email:p.email};
+                if (now < start) return {authorized:false, reason:'not_yet_valid'};
+                return {authorized:true, email:p.email, expires_at:p.expires, plan:p.plan||'trial'};
             } catch(e) {
-                return {authorized:false, reason:'invalid_format'};
+                return {authorized:false, reason:'parse_error'};
             }
         }
 
-        // Verifica licença online (quando tem internet).
-        // Usa URL absoluta para funcionar mesmo quando HTML é aberto como arquivo local.
-        // Retorna resposta do servidor se conectado, ou null se offline.
-        // OFFLINE-FIRST: falha de conexão = permitir acesso local.
-        // Só bloqueia se o servidor EXPLICITAMENTE rejeitar (revogado, etc).
+        // Verifica licença online (registra IP para telemetria)
         async function tbVerifyOnline(licContent) {
             try {
                 const p = JSON.parse(atob(licContent.trim()));
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
-                const res = await fetch(_tbServer + '/api/verify', {
-                    method:'POST',
-                    headers:{'Content-Type':'application/json'},
+                const res = await fetch(`${_tbServer}/api/verify`, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
                     body: JSON.stringify({lic_content: licContent, email: p.email}),
-                    signal: controller.signal
+                    signal: AbortSignal.timeout(8000)
                 });
-                clearTimeout(timeout);
-                if (res.ok) return await res.json();
-                // Servidor respondeu mas com erro HTTP → retorna resposta de erro
-                return {valid: false, reason: 'server_error', status: res.status};
-            } catch(e) {
-                // Sem conexão / timeout / servidor offline → null = modo offline
-                return null;
-            }
+                return await res.json();
+            } catch(e) { return null; }
         }
 
-        // Mostra tela de seleção de licença
-        function tbShowLicenseScreen(reason, expires) {
-            document.getElementById('tb-app').style.display = 'none';
-            const screen = document.getElementById('tb-license-screen');
-            screen.style.display = 'flex';
-
-            const msgEl = document.getElementById('tb-lic-msg');
-            const siteUrl = _tbServer;
-            if (reason === 'no_license') {
-                msgEl.innerHTML = 'Selecione seu arquivo <strong>tripabot.lic</strong> para continuar.';
-            } else if (reason === 'expired') {
-                const d = expires ? new Date(expires).toLocaleDateString('pt-BR') : '—';
-                msgEl.innerHTML = `Sua licença expirou em <strong>${d}</strong>.<br>Acesse o site para renovar.`;
-            } else if (reason === 'invalid_signature') {
-                msgEl.innerHTML = '⚠️ Arquivo de licença inválido ou corrompido.<br>Faça login no site para baixar novamente.';
-            } else if (reason === 'revoked') {
-                fetch(_tbServer + '/api/config').then(r=>r.json()).then(cfg=>{
-                    const mail = cfg.contact_email || '';
-                    // Usa DOM seguro em vez de innerHTML para evitar XSS com contact_email malicioso
-                    msgEl.innerHTML = '⊘ <strong>Acesso Revogado</strong><br>Sua licença foi cancelada pelo administrador.';
-                    if (mail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
-                        const br = document.createElement('br');
-                        const a = document.createElement('a');
-                        a.href = 'mailto:' + mail;
-                        a.style.color = '#e85252';
-                        a.textContent = mail; // textContent, não innerHTML
-                        msgEl.appendChild(br);
-                        msgEl.appendChild(a);
-                    } else {
-                        msgEl.innerHTML += '<br>Entre em contato com o suporte.';
-                    }
-                }).catch(()=>{
-                    msgEl.innerHTML = '⊘ <strong>Acesso Revogado</strong><br>Sua licença foi cancelada pelo administrador.<br>Entre em contato com o suporte.';
-                });
-            } else if (reason === 'server_error') {
-                msgEl.innerHTML = '⚠️ <strong>Erro no Servidor</strong><br>Não conseguimos validar sua licença.<br>Tente novamente mais tarde.';
-            } else if (reason === 'connection_failed') {
-                msgEl.innerHTML = '📡 <strong>Sem Conexão</strong><br>Verifique sua internet e tente novamente.';
-            } else {
-                msgEl.innerHTML = 'Arquivo de licença inválido.<br>Faça login no site para baixar novamente.';
-            }
+        // Mostra tela de erro bloqueando o app
+        function tbShowError(title, msg, showLoginLink) {
+            document.body.innerHTML = `
+            <div style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f0f4f8;padding:20px;">
+              <div style="background:white;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);padding:40px 36px;max-width:420px;text-align:center;">
+                <img src="/tripabot-logo.png" style="width:72px;margin-bottom:12px;" onerror="this.style.display='none'">
+                <h2 style="color:#222;margin-bottom:10px;">${title}</h2>
+                <p style="color:#666;font-size:14px;line-height:1.6;">${msg}</p>
+                ${showLoginLink ? '<a href="/" style="display:inline-block;margin-top:20px;padding:12px 28px;background:#e85252;color:white;text-decoration:none;border-radius:8px;font-weight:600;">Fazer Login</a>' : ''}
+              </div>
+            </div>`;
         }
 
-        // Desbloqueia o app
-        function tbUnlockApp(email, expires) {
-            document.getElementById('tb-license-screen').style.display = 'none';
-            document.getElementById('tb-app').style.display = 'block';
+        // Inicializa menu de conta com dados do usuário
+        function tbInitAccountMenu() {
+            const info = window.__USER_INFO__ || {};
+            const email    = info.email || '';
+            const plan     = info.plan  || 'trial';
+            const expiresAt= info.expires_at || '';
+            const contact  = info.contact_email || '';
+            const version  = info.version || '';
 
-            // Mostra info no rodapé (opcional)
-            const d = new Date(expires).toLocaleDateString('pt-BR');
-            console.log(`[TripaBot] Licença válida: ${email} até ${d}`);
-        }
+            const planLabel = plan === 'active' ? '✓ Plano Pago' : '⏱ Trial';
 
-        // Atualiza last_check_forced no .lic após validação bem-sucedida
-        function tbUpdateCheckForcedDate(licContent) {
-            try {
-                const p = JSON.parse(atob(licContent.trim()));
-                p.last_check_forced = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-                const updated = btoa(JSON.stringify(p));
-                tbSaveLic(updated);
-                return updated;
-            } catch(e) {
-                console.warn('[TripaBot] Erro ao atualizar last_check_forced:', e);
-                return licContent;
-            }
-        }
-
-        // Verifica se é necessário forced check-in (30 dias)
-        // Retorna true se: nunca validou online OU se > 30 dias desde a última validação
-        function tbCheckForcedCheckIn(licContent) {
-            try {
-                const p = JSON.parse(atob(licContent.trim()));
-                // Sem last_check_forced = nunca validou online → OBRIGATÓRIO validar
-                if (!p.last_check_forced) return true;
-
+            let daysLeft = 0, daysTotal = 30, barClass = 'green', daysText = '';
+            if (expiresAt) {
+                const exp = new Date(expiresAt);
                 const now = new Date();
-                const lastCheck = new Date(p.last_check_forced);
-                if (isNaN(lastCheck.getTime())) return true; // Data inválida → forçar
-
-                const daysSinceCheck = (now - lastCheck) / (1000 * 60 * 60 * 24);
-                console.log(`[TripaBot] Dias desde último check: ${daysSinceCheck.toFixed(1)}`);
-                return daysSinceCheck > 30;
-            } catch(e) {
-                console.warn('[TripaBot] Erro ao verificar forced check-in:', e);
-                return true; // Em caso de erro, forçar validação online (fail-safe)
+                daysLeft  = Math.max(0, Math.ceil((exp - now) / 86400000));
+                daysTotal = plan === 'active' ? 365 : 30;
+                const pct = Math.min(100, (daysLeft / daysTotal) * 100);
+                barClass  = pct > 40 ? 'green' : pct > 15 ? 'yellow' : 'red';
+                daysText  = `${daysLeft} dias restantes (expira ${exp.toLocaleDateString('pt-BR')})`;
             }
+
+            // Cria botão fixo
+            const btn = document.createElement('button');
+            btn.id = 'tb-account-btn';
+            btn.title = 'Minha Conta';
+            btn.innerHTML = '👤';
+            document.body.appendChild(btn);
+
+            // Cria painel
+            const panel = document.createElement('div');
+            panel.id = 'tb-account-panel';
+            panel.innerHTML = `
+              <div class="tb-acc-email">${email}</div>
+              <div class="tb-acc-plan">${planLabel}</div>
+              ${daysText ? `<div class="tb-acc-expires">${daysText}</div>
+              <div class="tb-acc-bar-wrap"><div class="tb-acc-bar ${barClass}" style="width:${Math.min(100,(daysLeft/daysTotal)*100)}%"></div></div>` : ''}
+              <hr class="tb-acc-divider">
+              <a class="tb-acc-renew" href="/renovar" target="_blank">🔄 Renovar Assinatura</a>
+              <hr class="tb-acc-divider">
+              ${contact ? `<a class="tb-acc-link" href="mailto:${contact}">✉ Suporte: ${contact}</a>` : ''}
+              <div class="tb-acc-version">TripaBot ${version}</div>
+            `;
+            document.body.appendChild(panel);
+
+            // Toggle ao clicar no botão
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                panel.classList.toggle('open');
+            });
+
+            // Fecha ao clicar fora
+            document.addEventListener('click', () => panel.classList.remove('open'));
+            panel.addEventListener('click', (e) => e.stopPropagation());
         }
 
-        // Verifica se o usuário já fez pelo menos um check-in online
-        function tbHasEverCheckedIn(licContent) {
-            try {
-                const p = JSON.parse(atob(licContent.trim()));
-                return !!p.last_check_forced;
-            } catch(e) { return false; }
-        }
-
-        // Processo principal de validação
+        // Inicialização principal
         async function tbInitLicense() {
-            // 1. Tenta ler do cache (localStorage ou sessionStorage)
-            let cached = tbReadLic();
+            // v2.0: modo exclusivamente online — requer window.__LIC_CONTENT__
+            const licContent = window.__LIC_CONTENT__;
 
-            if (!cached) {
-                // Nenhum cache → mostra tela de seleção
-                tbShowLicenseScreen('no_license');
+            if (!licContent) {
+                tbShowError(
+                    '⚠️ Acesso Inválido',
+                    'Para usar o TripaBot, faça login pelo site.<br><br>' +
+                    'Este arquivo não pode ser aberto diretamente.',
+                    true
+                );
                 return;
             }
 
-            // 2. Verifica se é necessário forced check-in:
-            //    - Primeira abertura: last_check_forced ausente → SEMPRE valida online
-            //    - A cada 30 dias: valida online obrigatoriamente
-            //    (HMAC da licença é verificado APENAS pelo servidor, nunca pelo cliente)
-            const needsForcedCheck = tbCheckForcedCheckIn(cached);
-            if (needsForcedCheck) {
-                console.log('[TripaBot] ⚠️ Validação online necessária (primeiro uso ou 30 dias)');
-            }
-
-            // 3. Valida localmente (formato e datas apenas — sem HMAC)
-            const result = await tbValidateLicContent(cached);
-
-            if (!result.authorized) {
-                tbClearLic();
-                tbShowLicenseScreen(result.reason, result.expires);
+            // Valida localmente (formato e data)
+            const local = await tbValidateLicContent(licContent);
+            if (!local.authorized) {
+                if (local.reason === 'expired') {
+                    tbShowError(
+                        '⏰ Licença Expirada',
+                        `Sua licença expirou. Renove para continuar usando o TripaBot.`,
+                        true
+                    );
+                } else {
+                    tbShowError('Licença Inválida', 'Entre em contato com o suporte.', true);
+                }
                 return;
             }
 
-            // 4. FORCED CHECK-IN: Força validação online (primeiro uso ou > 30 dias)
-            if (needsForcedCheck) {
-                console.log('[TripaBot] Forçando validação online...');
-                let online = null;
-                try { online = await tbVerifyOnline(cached); } catch(e) { online = null; }
-
-                // Se offline OU servidor recusou → BLOQUEIA (sem exceção)
-                if (!online || !online.valid) {
-                    console.log('[TripaBot] ❌ Validação online falhou');
-                    const screen = document.getElementById('tb-license-screen');
-                    document.getElementById('tb-app').style.display = 'none';
-                    screen.style.display = 'flex';
-                    const msgEl = document.getElementById('tb-lic-msg');
-                    if (!online) {
-                        // Sem internet
-                        msgEl.innerHTML = '📡 <strong>Conexão necessária</strong><br>' +
-                            (tbHasEverCheckedIn(cached)
-                                ? 'Sua licença precisa de verificação online a cada 30 dias.<br><strong>Conecte à internet para continuar.</strong>'
-                                : 'A primeira ativação requer conexão com a internet.<br><strong>Conecte-se e tente novamente.</strong>');
-                    } else {
-                        // Servidor rejeitou (licença inválida, revogada, etc.)
-                        tbClearLic();
-                        tbShowLicenseScreen(online.reason, result.expires);
-                    }
-                    return;
-                }
-
-                // Online OK → Atualiza last_check_forced e continua
-                console.log('[TripaBot] ✅ Validação online bem-sucedida');
-                cached = tbUpdateCheckForcedDate(cached);
-            }
-
-            // 5. Se online (opportunístico), verifica revogações
-            let online = null;
-            if (!needsForcedCheck) {
-                try { online = await tbVerifyOnline(cached); } catch(e) { online = null; }
-            }
-
-            // null = offline → permite (offline-first para os 30 dias)
-            const REASONS_TO_BLOCK = ['revoked', 'license_revoked', 'user_not_found'];
-            if (online !== null && !online.valid && REASONS_TO_BLOCK.includes(online.reason)) {
-                tbClearLic();
-                tbShowLicenseScreen(online.reason, result.expires);
+            // Verifica online (registra IP, valida revogação)
+            const online = await tbVerifyOnline(licContent);
+            if (online && online.valid === false) {
+                tbShowError(
+                    '🚫 Acesso Negado',
+                    online.reason || 'Sua licença foi revogada ou expirou.<br>Faça login novamente.',
+                    true
+                );
                 return;
             }
 
-            // 6. Tudo OK!
-            tbUnlockApp(result.email, result.expires);
+            // Tudo OK — mostra o app
+            const appEl = document.getElementById('tb-app') || document.getElementById('tb-lic-screen');
+            if (appEl) appEl.style.display = 'block';
 
-            // 5. Avisa se expira em breve (< 15 dias) — toast não bloqueante
-            const now = new Date(), exp = new Date(result.expires);
-            const daysLeft = Math.floor((exp - now) / (1000 * 60 * 60 * 24));
-            if (daysLeft > 0 && daysLeft <= 15) {
-                setTimeout(() => {
-                    const toast = document.createElement('div');
-                    toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#e65100;color:white;padding:14px 18px;border-radius:8px;font-size:13px;z-index:99999;max-width:280px;line-height:1.5;box-shadow:0 4px 12px rgba(0,0,0,0.2)';
-                    toast.textContent = `⚠️ Sua licença expira em ${daysLeft} dia${daysLeft>1?'s':''}.`;
-                    document.body.appendChild(toast);
-                    setTimeout(() => toast.remove(), 8000);
-                }, 2000);
-            }
+            // Inicializa menu de conta
+            tbInitAccountMenu();
         }
 
-        // Mostra erro na tela de licença
-        function tbShowErr(msg) {
-            const el = document.getElementById('tb-lic-err');
-            if (el) { el.textContent = msg; el.style.display = 'block'; }
-        }
-
-        // Salva licença (tenta localStorage, cai para sessionStorage se falhar)
-        function tbSaveLic(content) {
-            try { localStorage.setItem('tb_lic_v1', content); return true; }
-            catch(e) {
-                try { sessionStorage.setItem('tb_lic_v1', content); return true; }
-                catch(e2) { return false; }
-            }
-        }
-
-        // Lê licença salva (ou injetada via /app endpoint)
-        function tbReadLic() {
-            // 1. Verifica se foi injetada via /app endpoint
-            if (typeof window !== 'undefined' && window.__LIC_CONTENT__) {
-                const injected = window.__LIC_CONTENT__;
-                // Salva também no localStorage para offline
-                try { localStorage.setItem('tb_lic_v1', injected); } catch(e) {}
-                return injected;
-            }
-
-            // 2. Tenta ler do cache local
-            try { return localStorage.getItem('tb_lic_v1'); } catch(e) {}
-            try { return sessionStorage.getItem('tb_lic_v1'); } catch(e) {}
-            return null;
-        }
-
-        // Remove licença salva
-        function tbClearLic() {
-            try { localStorage.removeItem('tb_lic_v1'); } catch(e) {}
-            try { sessionStorage.removeItem('tb_lic_v1'); } catch(e) {}
-        }
-
-        // Lê e processa arquivo .lic selecionado pelo usuário
-        async function tbLoadLicFile(file) {
-            const btnEl = document.getElementById('tb-lic-btn');
-            const errEl = document.getElementById('tb-lic-err');
-
-            // Reseta estado
-            if (errEl) errEl.style.display = 'none';
-            if (btnEl) { btnEl.textContent = '⏳ Lendo arquivo...'; btnEl.disabled = true; }
-
-            try {
-                // 1. Lê o conteúdo do arquivo
-                let content;
-                try {
-                    content = await file.text();
-                } catch(e) {
-                    tbShowErr('❌ Não foi possível ler o arquivo. Tente novamente.');
-                    return;
-                }
-
-                if (!content || content.trim().length < 10) {
-                    tbShowErr('❌ Arquivo vazio ou inválido.');
-                    return;
-                }
-
-                // 2. Valida localmente (formato e datas — sem HMAC, HMAC é verificado no servidor)
-                if (btnEl) btnEl.textContent = '⏳ Validando arquivo...';
-                const result = await tbValidateLicContent(content);
-
-                if (!result.authorized) {
-                    if (result.reason === 'expired') {
-                        const d = result.expires ? new Date(result.expires).toLocaleDateString('pt-BR') : '?';
-                        tbShowErr(`❌ Licença expirada em ${d}. Faça login no site para renovar.`);
-                    } else {
-                        tbShowErr('❌ Arquivo .lic inválido. Baixe um novo fazendo login no site.');
-                    }
-                    return;
-                }
-
-                // 3. Verifica online (SEMPRE — valida assinatura HMAC no servidor + revogação)
-                if (btnEl) btnEl.textContent = '⏳ Verificando com servidor...';
-                let online = null;
-                try {
-                    online = await tbVerifyOnline(content.trim());
-                } catch(e) {
-                    online = null;
-                }
-
-                // Primeira ativação ou forja de licença → servidor rejeita HMAC inválido
-                const needsOnline = tbCheckForcedCheckIn(content.trim());
-                if (needsOnline && (!online || !online.valid)) {
-                    if (!online) {
-                        tbShowErr('❌ Conexão com a internet necessária para ativar a licença pela primeira vez.');
-                    } else {
-                        tbShowErr('❌ Licença inválida. Faça login no site para obter um arquivo válido.');
-                    }
-                    return;
-                }
-
-                // Revogação explícita
-                const BLOCK = ['revoked', 'license_revoked', 'user_not_found'];
-                if (online !== null && !online.valid && BLOCK.includes(online.reason)) {
-                    tbShowLicenseScreen(online.reason, result.expires);
-                    return;
-                }
-
-                // 4. Salva (atualiza last_check_forced se validou online) e abre o app
-                let finalContent = content.trim();
-                if (online && online.valid) finalContent = tbUpdateCheckForcedDate(finalContent);
-                tbSaveLic(finalContent);
-                tbUnlockApp(result.email, result.expires);
-
-            } catch(e) {
-                console.error('[TripaBot] Erro inesperado:', e);
-                tbShowErr('❌ Erro inesperado: ' + (e.message || 'tente novamente'));
-            } finally {
-                if (btnEl) { btnEl.textContent = '📂 Selecionar tripabot.lic'; btnEl.disabled = false; }
-            }
-        }
-
-        // Inicia sistema de licença — funciona mesmo se DOM já carregou
+        // Aguarda DOM e inicializa
         if (document.readyState === 'loading') {
             window.addEventListener('DOMContentLoaded', tbInitLicense);
         } else {
-            // DOM já está pronto (script carregado de forma diferida)
             tbInitLicense();
         }
+
         // ======================================================
         // FIM SISTEMA DE LICENÇA
         // ======================================================

@@ -55,7 +55,7 @@ SECRET_KEY      = os.environ.get('TRIPABOT_SECRET_KEY', '')
 ADMIN_PASSWORD  = os.environ.get('ADMIN_PASSWORD', '')
 PIX_KEY         = os.environ.get('PIX_KEY', 'Configure PIX_KEY no .env')
 CONTACT_EMAIL   = os.environ.get('CONTACT_EMAIL', '')
-APP_VERSION     = '1.2.0'  # Forced check-in + IP telemetry
+APP_VERSION     = '2.0.0'  # Online-only mode
 
 # Tokens de admin — usa funções do database.py (compatível com SQLite e PostgreSQL)
 def _admin_token_valid(token):
@@ -180,19 +180,6 @@ def api_config():
     return jsonify({'pix_key': PIX_KEY, 'contact_email': CONTACT_EMAIL, 'version': APP_VERSION})
 
 
-@app.route('/download-html')
-def download_html():
-    """Força download do tripabot.html (com Content-Disposition: attachment)."""
-    html_path = os.path.join(app.static_folder, 'tripabot.html')
-    if not os.path.exists(html_path):
-        return jsonify({'error': 'Arquivo não encontrado'}), 404
-    return send_from_directory(
-        app.static_folder,
-        'tripabot.html',
-        as_attachment=True,
-        download_name='TripaBot.html'
-    )
-
 
 @app.route('/app', methods=['GET', 'POST'])
 def app_online():
@@ -236,9 +223,32 @@ def app_online():
     with open(html_path, 'r', encoding='utf-8') as f:
         html_content = f.read()
 
-    # Injeta a licença de forma segura via json.dumps (escapa automaticamente)
-    lic_injection = f"\n<script>window.__LIC_CONTENT__ = {json.dumps(token_data['lic_content'])};</script>\n"
-    html_content = html_content.replace('</head>', f'{lic_injection}</head>')
+    # Busca dados do usuário para o menu de conta
+    user = get_user_by_id(token_data['user_id'])
+    lic_data = {}
+    try:
+        import base64 as _b64, json as _json
+        payload_b64 = token_data['lic_content'].split('.')[0]
+        lic_data = _json.loads(_b64.b64decode(payload_b64 + '==').decode())
+    except Exception:
+        pass
+
+    user_info = {
+        'email':         user['email'] if user else '',
+        'plan':          lic_data.get('plan', user['status'] if user else 'trial'),
+        'expires_at':    lic_data.get('expires_at', ''),
+        'contact_email': CONTACT_EMAIL,
+        'version':       APP_VERSION,
+    }
+
+    # Injeta licença + info do usuário (json.dumps escapa automaticamente)
+    injection = (
+        f"\n<script>"
+        f"window.__LIC_CONTENT__ = {json.dumps(token_data['lic_content'])};"
+        f"window.__USER_INFO__ = {json.dumps(user_info)};"
+        f"</script>\n"
+    )
+    html_content = html_content.replace('</head>', f'{injection}</head>')
 
     return Response(html_content, mimetype='text/html')
 
@@ -388,27 +398,6 @@ def api_verify():
     return jsonify({**result, 'email': email})
 
 
-@app.route('/api/download-lic/<token>')
-def download_lic(token):
-    """Download do arquivo tripabot.lic via token temporário (one-time use)."""
-    token_data = get_download_token(token)
-    if not token_data:
-        return jsonify({'error': 'Link expirado ou inválido. Faça login novamente.'}), 404
-
-    # Verifica expiração com datetime aware
-    try:
-        expires_dt = datetime.fromisoformat(token_data['expires_at'].replace('Z', '+00:00'))
-        if datetime.now(timezone.utc) > expires_dt:
-            return jsonify({'error': 'Link expirado. Faça login novamente.'}), 410
-    except ValueError:
-        return jsonify({'error': 'Token inválido'}), 404
-
-    return Response(
-        token_data['lic_content'],
-        mimetype='application/octet-stream',
-        headers={'Content-Disposition': 'attachment; filename="tripabot.lic"'}
-    )
-
 
 @app.route('/api/report-payment', methods=['POST'])
 def api_report_payment():
@@ -536,16 +525,11 @@ def api_admin_approve(payment_id):
     update_user_status(user_id, 'active', paid_expires=lic['expires_at'])
     approve_payment(payment_id)
 
-    # Token de download para o admin enviar ao usuário
-    dl_token = _make_download_token(user_id, lic['lic_content'])
-    dl_url = f"/api/download-lic/{dl_token}"
-
     return jsonify({
         'success': True,
         'email':       email,
         'expires_at':  lic['expires_at'],
-        'download_url': dl_url,
-        'message': f"Licença gerada para {email}. Envie o link de download ou informe que o usuário faça login novamente.",
+        'message': f"Licença aprovada para {email}. O usuário pode fazer login para acessar o app.",
     })
 
 
@@ -665,6 +649,7 @@ def api_admin_generate_lic(user_id):
     else:
         update_user_status(user_id, status, paid_expires=expires)
 
+    # Gera token para /app (acesso online imediato)
     dl_token = _make_download_token(user_id, lic['lic_content'])
 
     return jsonify({
@@ -672,7 +657,8 @@ def api_admin_generate_lic(user_id):
         'email':       email,
         'expires_at':  expires,
         'plan':        lic['plan'],
-        'download_url': f"/api/download-lic/{dl_token}",
+        'app_url': f"/app?token={dl_token}",
+        'message': f"Licença gerada para {email}. O usuário pode fazer login para acessar o app.",
     })
 
 

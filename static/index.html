@@ -24,8 +24,6 @@ body {
     width: 100%;
     max-width: 420px;
 }
-
-/* LOGO */
 .logo {
     text-align: center;
     margin-bottom: 28px;
@@ -41,12 +39,8 @@ body {
     color: #999;
     margin-top: 2px;
 }
-
-/* PANELS */
 .panel { display: none; }
 .panel.active { display: block; }
-
-/* FORM */
 .form-group { margin-bottom: 14px; }
 label { font-size: 12px; font-weight: 600; color: #555; display: block; margin-bottom: 5px; }
 input[type=email], input[type=password], input[type=text] {
@@ -55,8 +49,6 @@ input[type=email], input[type=password], input[type=text] {
     font-size: 15px; outline: none; transition: border-color 0.15s;
 }
 input:focus { border-color: #e85252; }
-
-/* BOTÃO PRINCIPAL */
 .btn {
     width: 100%; padding: 13px;
     background: #e85252; color: white;
@@ -67,8 +59,6 @@ input:focus { border-color: #e85252; }
 }
 .btn:hover { background: #c94444; }
 .btn:disabled { background: #ccc; cursor: not-allowed; }
-
-/* BOTÃO CRIAR CONTA — visível, não link minúsculo */
 .btn-secondary {
     width: 100%; padding: 12px;
     background: white; color: #e85252;
@@ -78,77 +68,25 @@ input:focus { border-color: #e85252; }
     margin-top: 10px;
 }
 .btn-secondary:hover { background: #fff5f5; }
-
-/* BOTÕES PÓS-LOGIN */
-.btn-online {
-    width: 100%; padding: 15px;
-    background: #27ae60; color: white;
-    border: none; border-radius: 10px;
-    font-size: 16px; font-weight: 700;
-    cursor: pointer; transition: background 0.15s;
-    text-decoration: none; display: block; text-align: center;
-    margin-top: 10px;
-}
-.btn-online:hover { background: #1e8449; }
-
-.btn-download {
-    width: 100%; padding: 13px;
-    background: white; color: #444;
-    border: 1.5px solid #ddd; border-radius: 10px;
-    font-size: 14px; font-weight: 600;
-    cursor: pointer; transition: all 0.15s;
-    text-decoration: none; display: block; text-align: center;
-    margin-top: 10px;
-}
-.btn-download:hover { border-color: #aaa; background: #fafafa; }
-
-/* MESSAGES */
 .msg { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-size: 13px; display: none; }
 .msg.success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
 .msg.error   { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
-
-/* SEÇÃO PÓS-LOGIN */
-#screen-access { display: none; }
-#screen-access h3 {
-    font-size: 15px; font-weight: 700; color: #333;
-    text-align: center; margin-bottom: 4px;
-}
-#screen-access .subtitle {
-    font-size: 12px; color: #999; text-align: center; margin-bottom: 16px;
-}
-.divider {
-    display: flex; align-items: center; gap: 10px;
-    margin: 14px 0; color: #ccc; font-size: 12px;
-}
-.divider::before, .divider::after {
-    content: ''; flex: 1; height: 1px; background: #eee;
-}
-
-/* LINK CONTATO */
 .contact-link {
     display: block; text-align: center;
     font-size: 12px; color: #bbb; margin-top: 14px;
 }
 .contact-link a { color: #bbb; }
-
-/* VERSÃO */
-.version-tag {
-    font-size: 11px; color: #ccc;
-    text-align: center; margin-top: 12px;
-}
 </style>
 </head>
 <body>
 <div class="card">
-
-    <!-- LOGO -->
     <div class="logo">
         <img src="/tripabot-logo.png" alt="TripaBot">
         <p>Padronização Médica — Gastroenterologia HBDF</p>
     </div>
 
-    <!-- ── TELA: LOGIN ─────────────────────────────── -->
-    <div id="screen-login" class="panel active">
+    <!-- LOGIN -->
+    <div id="panel-login" class="panel active">
         <div class="form-group">
             <label>Email</label>
             <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
@@ -157,38 +95,14 @@ input:focus { border-color: #e85252; }
             <label>Senha</label>
             <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
         </div>
-
         <button class="btn" id="btn-login" onclick="doLogin()">Entrar →</button>
         <div id="login-msg" class="msg"></div>
-
-        <button class="btn-secondary" onclick="showScreen('register')">Criar conta grátis</button>
-
+        <button class="btn-secondary" onclick="showPanel('register')">Criar conta grátis</button>
         <div class="contact-link"><a id="contact-link" href="#">Dúvidas? Entre em contato</a></div>
     </div>
 
-    <!-- ── TELA: PÓS-LOGIN (3 botões) ─────────────── -->
-    <div id="screen-access">
-        <h3>Bem-vindo! 👋</h3>
-        <div class="subtitle" id="access-subtitle">Como deseja usar o TripaBot?</div>
-
-        <a id="btn-use-online" class="btn-online" href="#" onclick="openAppOnline(); return false;">🚀 Usar Agora (Online)</a>
-
-        <div class="divider">ou baixar para usar offline</div>
-
-        <a id="btn-dl-lic" class="btn-download" href="#">📥 Baixar Licença (.lic)</a>
-        <a class="btn-download" href="/download-html">📥 Baixar Programa (.html)</a>
-
-        <button class="btn-secondary" style="margin-top:18px; font-size:13px; padding:10px;" onclick="showScreen('login')">← Voltar ao login</button>
-
-        <div class="version-tag">
-            Versão: <span id="server-version">—</span>
-            &nbsp;·&nbsp;
-            <a href="/renovar" style="color:#e85252;font-size:11px;">Renovar assinatura</a>
-        </div>
-    </div>
-
-    <!-- ── TELA: REGISTRO ──────────────────────────── -->
-    <div id="screen-register" class="panel">
+    <!-- REGISTRO -->
+    <div id="panel-register" class="panel">
         <div class="form-group">
             <label>Nome</label>
             <input type="text" id="reg-name" placeholder="Seu nome completo">
@@ -201,32 +115,19 @@ input:focus { border-color: #e85252; }
             <label>Senha (mínimo 6 caracteres)</label>
             <input type="password" id="reg-password" placeholder="••••••••">
         </div>
-
         <button class="btn" id="btn-register" onclick="doRegister()">Criar conta grátis →</button>
         <div id="reg-msg" class="msg"></div>
-
-        <button class="btn-secondary" onclick="showScreen('login')" style="margin-top:10px;">Já tenho conta — Fazer login</button>
-
-        <div class="contact-link" style="margin-top:10px; font-size:11px; color:#ccc;">30 dias grátis. Depois, R$ 20/ano.</div>
+        <button class="btn-secondary" onclick="showPanel('login')" style="margin-top:10px;">Já tenho conta — Fazer login</button>
+        <div class="contact-link" style="margin-top:10px; font-size:11px;">30 dias grátis. Depois, R$ 20/ano.</div>
     </div>
-
 </div>
 
 <script>
-function showScreen(name) {
-    // Esconde todos
-    ['screen-login','screen-register'].forEach(id => {
-        document.getElementById(id).classList.remove('active');
-    });
-    document.getElementById('screen-access').style.display = 'none';
-
-    if (name === 'login') {
-        document.getElementById('screen-login').classList.add('active');
-    } else if (name === 'register') {
-        document.getElementById('screen-register').classList.add('active');
-    } else if (name === 'access') {
-        document.getElementById('screen-access').style.display = 'block';
-    }
+function showPanel(name) {
+    document.getElementById('panel-login').classList.toggle('active', name === 'login');
+    document.getElementById('panel-register').classList.toggle('active', name === 'register');
+    document.getElementById('login-msg').style.display = 'none';
+    document.getElementById('reg-msg').style.display = 'none';
 }
 
 function showMsg(id, type, text) {
@@ -241,16 +142,13 @@ async function doLogin() {
     const email    = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
 
-    if (!email || !password) {
-        showMsg('login-msg', 'error', 'Preencha email e senha.');
-        return;
-    }
+    if (!email || !password) { showMsg('login-msg', 'error', 'Preencha email e senha.'); return; }
 
     btn.disabled = true;
     btn.textContent = 'Entrando...';
 
     try {
-        const res = await fetch('/api/login', {
+        const res  = await fetch('/api/login', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({email, password})
@@ -262,26 +160,12 @@ async function doLogin() {
             return;
         }
 
-        // P1-C: Guarda token para uso via POST (não expõe em URL)
-        window._tb_access_token = data.download_token;
-        document.getElementById('btn-dl-lic').href = `/api/download-lic/${data.download_token}`;
-
-        // Mostra validade no subtítulo
-        const expires = new Date(data.expires_at).toLocaleDateString('pt-BR');
-        document.getElementById('access-subtitle').textContent = `Licença válida até ${expires}`;
-
-        // Versão do servidor
-        fetch('/api/config').then(r => r.json()).then(cfg => {
-            const el = document.getElementById('server-version');
-            if (el && cfg.version) el.textContent = 'v' + cfg.version;
-        }).catch(() => {});
-
-        // Troca para a tela de acesso (esconde formulário)
-        showScreen('access');
+        // Redireciona direto para o app
+        btn.textContent = 'Abrindo TripaBot...';
+        window.location.href = `/app?token=${data.download_token}`;
 
     } catch(e) {
         showMsg('login-msg', 'error', 'Erro de conexão. Tente novamente.');
-    } finally {
         btn.disabled = false;
         btn.textContent = 'Entrar →';
     }
@@ -293,16 +177,13 @@ async function doRegister() {
     const password = document.getElementById('reg-password').value;
     const name     = document.getElementById('reg-name').value.trim();
 
-    if (!email || !password) {
-        showMsg('reg-msg', 'error', 'Preencha email e senha.');
-        return;
-    }
+    if (!email || !password) { showMsg('reg-msg', 'error', 'Preencha email e senha.'); return; }
 
     btn.disabled = true;
     btn.textContent = 'Criando conta...';
 
     try {
-        const res = await fetch('/api/register', {
+        const res  = await fetch('/api/register', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({email, password, name})
@@ -311,63 +192,23 @@ async function doRegister() {
 
         if (!res.ok) {
             showMsg('reg-msg', 'error', data.error || 'Erro ao criar conta.');
+            btn.disabled = false;
+            btn.textContent = 'Criar conta grátis →';
             return;
         }
 
-        // P1-C: Guarda token para uso via POST (não expõe em URL)
-        window._tb_access_token = data.download_token;
-        document.getElementById('btn-dl-lic').href = `/api/download-lic/${data.download_token}`;
-        document.getElementById('access-subtitle').textContent = 'Conta criada! Seus 30 dias de trial começaram.';
-
-        // Versão do servidor
-        fetch('/api/config').then(r => r.json()).then(cfg => {
-            const el = document.getElementById('server-version');
-            if (el && cfg.version) el.textContent = 'v' + cfg.version;
-        }).catch(() => {});
-
-        // Troca para a tela de acesso
-        showScreen('access');
+        // Redireciona direto para o app
+        btn.textContent = 'Abrindo TripaBot...';
+        window.location.href = `/app?token=${data.download_token}`;
 
     } catch(e) {
         showMsg('reg-msg', 'error', 'Erro de conexão. Tente novamente.');
-    } finally {
         btn.disabled = false;
         btn.textContent = 'Criar conta grátis →';
     }
 }
 
-// P1-C: Abre o app via POST (token não fica na URL/logs do servidor)
-function openAppOnline() {
-    const token = window._tb_access_token;
-    if (!token) { alert('Faça login primeiro.'); return; }
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/app';
-    form.target = '_blank';
-    form.style.display = 'none';
-    const inp = document.createElement('input');
-    inp.type = 'hidden'; inp.name = 'token'; inp.value = token;
-    // Envia como JSON via fetch e abre em nova aba
-    fetch('/app', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({token})
-    }).then(r => {
-        if (!r.ok) throw new Error('Token inválido');
-        return r.text();
-    }).then(html => {
-        const w = window.open('', '_blank');
-        w.document.write(html);
-        w.document.close();
-        // Limpa token após uso (one-time)
-        window._tb_access_token = null;
-    }).catch(() => {
-        alert('Link expirado. Faça login novamente.');
-        showScreen('login');
-    });
-}
-
-// Carrega email de contato
+// Contato
 fetch('/api/config').then(r => r.json()).then(cfg => {
     if (cfg.contact_email) {
         const link = document.getElementById('contact-link');
@@ -375,15 +216,14 @@ fetch('/api/config').then(r => r.json()).then(cfg => {
     }
 }).catch(() => {});
 
-// Enter submete o formulário ativo
+// Enter submete
 document.addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
-    if (document.getElementById('screen-login').classList.contains('active')) doLogin();
-    else if (document.getElementById('screen-register').classList.contains('active')) doRegister();
+    if (document.getElementById('panel-login').classList.contains('active')) doLogin();
+    else doRegister();
 });
 
-// ?tab=register abre direto no registro
-if (new URLSearchParams(window.location.search).get('tab') === 'register') showScreen('register');
+if (new URLSearchParams(window.location.search).get('tab') === 'register') showPanel('register');
 </script>
 </body>
 </html>
