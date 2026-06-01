@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TripaBot — Acesso</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iI2U4NTI1MiIvPjxsaW5lIHgxPSIxNiIgeTE9IjEiIHgyPSIxNiIgeTI9IjUiIHN0cm9rZT0iI2EwMjAyMCIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMSIgcj0iMiIgZmlsbD0iI2U4NTI1MiIvPjxjaXJjbGUgY3g9IjYiIGN5PSIxNiIgcj0iMy41IiBmaWxsPSIjYTAyMDIwIi8+PGNpcmNsZSBjeD0iMjYiIGN5PSIxNiIgcj0iMy41IiBmaWxsPSIjYTAyMDIwIi8+PHJlY3QgeD0iNyIgeT0iNiIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE4IiByeD0iNSIgZmlsbD0iIzFjMWMyZSIvPjxwYXRoIGQ9Ik0gMTEgMTUgUSAxMy41IDExLCAxNiAxNSIgc3Ryb2tlPSIjNWRmZmM1IiBzdHJva2Utd2lkdGg9IjEuOCIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTSAxNiAxNSBRIDE4LjUgMTEsIDIxIDE1IiBzdHJva2U9IiM1ZGZmYzUiIHN0cm9rZS13aWR0aD0iMS44IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNIDExLjUgMjAgUSAxNiAyNCwgMjAuNSAyMCIgc3Ryb2tlPSIjNWRmZmM1IiBzdHJva2Utd2lkdGg9IjEuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+"/>
+<link rel="icon" href="/tripabot-logo.png">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
@@ -28,24 +28,18 @@ body {
 /* LOGO */
 .logo {
     text-align: center;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
 }
-.logo-icon {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 12px;
-    display: block;
-}
-.logo h1 {
-    font-size: 24px;
-    color: #1c1c2e;
-    font-weight: 800;
-    letter-spacing: -0.5px;
+.logo img {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    margin-bottom: 4px;
 }
 .logo p {
     font-size: 12px;
     color: #999;
-    margin-top: 4px;
+    margin-top: 2px;
 }
 
 /* PANELS */
@@ -53,7 +47,7 @@ body {
 .panel.active { display: block; }
 
 /* FORM */
-.form-group { margin-bottom: 16px; }
+.form-group { margin-bottom: 14px; }
 label { font-size: 12px; font-weight: 600; color: #555; display: block; margin-bottom: 5px; }
 input[type=email], input[type=password], input[type=text] {
     width: 100%; padding: 11px 14px;
@@ -62,7 +56,7 @@ input[type=email], input[type=password], input[type=text] {
 }
 input:focus { border-color: #e85252; }
 
-/* BUTTONS */
+/* BOTÃO PRINCIPAL */
 .btn {
     width: 100%; padding: 13px;
     background: #e85252; color: white;
@@ -73,84 +67,88 @@ input:focus { border-color: #e85252; }
 }
 .btn:hover { background: #c94444; }
 .btn:disabled { background: #ccc; cursor: not-allowed; }
-.btn-online {
-    width: 100%; padding: 13px;
-    background: #27ae60; color: white;
-    border: none; border-radius: 8px;
+
+/* BOTÃO CRIAR CONTA — visível, não link minúsculo */
+.btn-secondary {
+    width: 100%; padding: 12px;
+    background: white; color: #e85252;
+    border: 2px solid #e85252; border-radius: 8px;
     font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+    margin-top: 10px;
+}
+.btn-secondary:hover { background: #fff5f5; }
+
+/* BOTÕES PÓS-LOGIN */
+.btn-online {
+    width: 100%; padding: 15px;
+    background: #27ae60; color: white;
+    border: none; border-radius: 10px;
+    font-size: 16px; font-weight: 700;
     cursor: pointer; transition: background 0.15s;
     text-decoration: none; display: block; text-align: center;
-    margin-top: 8px;
+    margin-top: 10px;
 }
 .btn-online:hover { background: #1e8449; }
-.btn-outline {
-    width: 100%; padding: 11px;
-    background: white; color: #555;
-    border: 1.5px solid #e0e0e0; border-radius: 8px;
-    font-size: 14px; font-weight: 500;
+
+.btn-download {
+    width: 100%; padding: 13px;
+    background: white; color: #444;
+    border: 1.5px solid #ddd; border-radius: 10px;
+    font-size: 14px; font-weight: 600;
     cursor: pointer; transition: all 0.15s;
     text-decoration: none; display: block; text-align: center;
-    margin-top: 8px;
+    margin-top: 10px;
 }
-.btn-outline:hover { border-color: #aaa; background: #fafafa; }
+.btn-download:hover { border-color: #aaa; background: #fafafa; }
 
 /* MESSAGES */
 .msg { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-size: 13px; display: none; }
 .msg.success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
 .msg.error   { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
-.msg.info    { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
 
-/* POST-LOGIN OPTIONS */
-.access-options { display: none; margin-top: 20px; }
-.access-options h3 {
-    font-size: 14px; font-weight: 700; color: #333;
-    margin-bottom: 12px; text-align: center;
+/* SEÇÃO PÓS-LOGIN */
+#screen-access { display: none; }
+#screen-access h3 {
+    font-size: 15px; font-weight: 700; color: #333;
+    text-align: center; margin-bottom: 4px;
+}
+#screen-access .subtitle {
+    font-size: 12px; color: #999; text-align: center; margin-bottom: 16px;
 }
 .divider {
     display: flex; align-items: center; gap: 10px;
-    margin: 12px 0; color: #bbb; font-size: 12px;
+    margin: 14px 0; color: #ccc; font-size: 12px;
 }
 .divider::before, .divider::after {
     content: ''; flex: 1; height: 1px; background: #eee;
 }
 
-/* LINKS */
-.link-btn {
-    background: none; border: none; color: #e85252;
-    font-size: 13px; cursor: pointer; padding: 0;
-    text-decoration: underline;
+/* LINK CONTATO */
+.contact-link {
+    display: block; text-align: center;
+    font-size: 12px; color: #bbb; margin-top: 14px;
 }
-.link-btn:hover { color: #c94444; }
-small { font-size: 12px; color: #aaa; display: block; margin-top: 16px; text-align: center; line-height: 1.6; }
+.contact-link a { color: #bbb; }
 
-/* SERVER VERSION */
+/* VERSÃO */
 .version-tag {
-    font-size: 11px; color: #bbb;
-    text-align: center; margin-top: 10px;
+    font-size: 11px; color: #ccc;
+    text-align: center; margin-top: 12px;
 }
 </style>
 </head>
 <body>
 <div class="card">
+
     <!-- LOGO -->
     <div class="logo">
-        <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-            <rect width="64" height="64" rx="14" fill="#e85252"/>
-            <line x1="32" y1="2" x2="32" y2="10" stroke="#a02020" stroke-width="5" stroke-linecap="round"/>
-            <circle cx="32" cy="2" r="4" fill="#e85252"/>
-            <circle cx="12" cy="32" r="7" fill="#a02020"/>
-            <circle cx="52" cy="32" r="7" fill="#a02020"/>
-            <rect x="14" y="12" width="36" height="36" rx="10" fill="#1c1c2e"/>
-            <path d="M 22 30 Q 27 22, 32 30" stroke="#5dffc5" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-            <path d="M 32 30 Q 37 22, 42 30" stroke="#5dffc5" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-            <path d="M 23 40 Q 32 48, 41 40" stroke="#5dffc5" stroke-width="3" fill="none" stroke-linecap="round"/>
-        </svg>
-        <h1>TripaBot</h1>
+        <img src="/tripabot-logo.png" alt="TripaBot">
         <p>Padronização Médica — Gastroenterologia HBDF</p>
     </div>
 
-    <!-- PANEL LOGIN (padrão) -->
-    <div id="panel-login" class="panel active">
+    <!-- ── TELA: LOGIN ─────────────────────────────── -->
+    <div id="screen-login" class="panel active">
         <div class="form-group">
             <label>Email</label>
             <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
@@ -159,30 +157,34 @@ small { font-size: 12px; color: #aaa; display: block; margin-top: 16px; text-ali
             <label>Senha</label>
             <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
         </div>
-        <button class="btn" id="btn-login" onclick="doLogin()">Entrar →</button>
 
+        <button class="btn" id="btn-login" onclick="doLogin()">Entrar →</button>
         <div id="login-msg" class="msg"></div>
 
-        <!-- PÓS-LOGIN: opções de acesso -->
-        <div id="access-options" class="access-options">
-            <h3>Como deseja usar?</h3>
-            <a id="btn-use-online" class="btn-online" href="#">🚀 Usar Agora (Online)</a>
-            <div class="divider">ou baixar para usar offline</div>
-            <a id="btn-dl-lic" class="btn-outline" href="#">📥 Baixar Licença (.lic)</a>
-            <a class="btn-outline" href="/download-html">📥 Baixar Programa (.html)</a>
-            <div class="version-tag">Versão do servidor: <span id="server-version">—</span></div>
-        </div>
+        <button class="btn-secondary" onclick="showScreen('register')">Criar conta grátis</button>
 
-        <small>
-            Não tem conta?
-            <button class="link-btn" onclick="showPanel('register')">Criar conta grátis</button>
-            &nbsp;·&nbsp;
-            <a id="contact-link" href="#" style="color:#aaa; font-size:12px;">Contato</a>
-        </small>
+        <div class="contact-link"><a id="contact-link" href="#">Dúvidas? Entre em contato</a></div>
     </div>
 
-    <!-- PANEL REGISTRO -->
-    <div id="panel-register" class="panel">
+    <!-- ── TELA: PÓS-LOGIN (3 botões) ─────────────── -->
+    <div id="screen-access">
+        <h3>Bem-vindo! 👋</h3>
+        <div class="subtitle" id="access-subtitle">Como deseja usar o TripaBot?</div>
+
+        <a id="btn-use-online" class="btn-online" href="#">🚀 Usar Agora (Online)</a>
+
+        <div class="divider">ou baixar para usar offline</div>
+
+        <a id="btn-dl-lic" class="btn-download" href="#">📥 Baixar Licença (.lic)</a>
+        <a class="btn-download" href="/download-html">📥 Baixar Programa (.html)</a>
+
+        <button class="btn-secondary" style="margin-top:18px; font-size:13px; padding:10px;" onclick="showScreen('login')">← Voltar ao login</button>
+
+        <div class="version-tag">Versão: <span id="server-version">—</span></div>
+    </div>
+
+    <!-- ── TELA: REGISTRO ──────────────────────────── -->
+    <div id="screen-register" class="panel">
         <div class="form-group">
             <label>Nome</label>
             <input type="text" id="reg-name" placeholder="Seu nome completo">
@@ -195,36 +197,32 @@ small { font-size: 12px; color: #aaa; display: block; margin-top: 16px; text-ali
             <label>Senha (mínimo 6 caracteres)</label>
             <input type="password" id="reg-password" placeholder="••••••••">
         </div>
-        <button class="btn" id="btn-register" onclick="doRegister()">Criar conta grátis →</button>
 
+        <button class="btn" id="btn-register" onclick="doRegister()">Criar conta grátis →</button>
         <div id="reg-msg" class="msg"></div>
 
-        <!-- PÓS-REGISTRO: opções de acesso -->
-        <div id="reg-access-options" class="access-options">
-            <h3>Conta criada! Como deseja usar?</h3>
-            <a id="reg-btn-use-online" class="btn-online" href="#">🚀 Usar Agora (Online)</a>
-            <div class="divider">ou baixar para usar offline</div>
-            <a id="reg-btn-dl-lic" class="btn-outline" href="#">📥 Baixar Licença (.lic)</a>
-            <a class="btn-outline" href="/download-html">📥 Baixar Programa (.html)</a>
-        </div>
+        <button class="btn-secondary" onclick="showScreen('login')" style="margin-top:10px;">Já tenho conta — Fazer login</button>
 
-        <small style="margin-top: 12px;">
-            Já tem conta?
-            <button class="link-btn" onclick="showPanel('login')">Fazer login</button>
-        </small>
-        <small>30 dias grátis. Depois, R$ 20/ano.</small>
+        <div class="contact-link" style="margin-top:10px; font-size:11px; color:#ccc;">30 dias grátis. Depois, R$ 20/ano.</div>
     </div>
+
 </div>
 
 <script>
-function showPanel(name) {
-    document.getElementById('panel-login').classList.toggle('active', name === 'login');
-    document.getElementById('panel-register').classList.toggle('active', name === 'register');
-    // Limpa mensagens ao trocar
-    ['login-msg','reg-msg'].forEach(id => {
-        const el = document.getElementById(id);
-        el.style.display = 'none';
+function showScreen(name) {
+    // Esconde todos
+    ['screen-login','screen-register'].forEach(id => {
+        document.getElementById(id).classList.remove('active');
     });
+    document.getElementById('screen-access').style.display = 'none';
+
+    if (name === 'login') {
+        document.getElementById('screen-login').classList.add('active');
+    } else if (name === 'register') {
+        document.getElementById('screen-register').classList.add('active');
+    } else if (name === 'access') {
+        document.getElementById('screen-access').style.display = 'block';
+    }
 }
 
 function showMsg(id, type, text) {
@@ -260,19 +258,22 @@ async function doLogin() {
             return;
         }
 
-        const expires = new Date(data.expires_at).toLocaleDateString('pt-BR');
-        showMsg('login-msg', 'success', `✓ Licença válida até ${expires}`);
-
-        // Configura links de acesso
+        // Configura links
         document.getElementById('btn-use-online').href = `/app?token=${data.download_token}`;
         document.getElementById('btn-dl-lic').href = `/api/download-lic/${data.download_token}`;
-        document.getElementById('access-options').style.display = 'block';
 
-        // Mostra versão do servidor
+        // Mostra validade no subtítulo
+        const expires = new Date(data.expires_at).toLocaleDateString('pt-BR');
+        document.getElementById('access-subtitle').textContent = `Licença válida até ${expires}`;
+
+        // Versão do servidor
         fetch('/api/config').then(r => r.json()).then(cfg => {
             const el = document.getElementById('server-version');
             if (el && cfg.version) el.textContent = 'v' + cfg.version;
         }).catch(() => {});
+
+        // Troca para a tela de acesso (esconde formulário)
+        showScreen('access');
 
     } catch(e) {
         showMsg('login-msg', 'error', 'Erro de conexão. Tente novamente.');
@@ -309,17 +310,19 @@ async function doRegister() {
             return;
         }
 
-        showMsg('reg-msg', 'success', '✓ Conta criada com sucesso!');
+        // Configura links
+        document.getElementById('btn-use-online').href = `/app?token=${data.download_token}`;
+        document.getElementById('btn-dl-lic').href = `/api/download-lic/${data.download_token}`;
+        document.getElementById('access-subtitle').textContent = 'Conta criada! Seus 30 dias de trial começaram.';
 
-        // Limpa campos
-        document.getElementById('reg-name').value = '';
-        document.getElementById('reg-email').value = '';
-        document.getElementById('reg-password').value = '';
+        // Versão do servidor
+        fetch('/api/config').then(r => r.json()).then(cfg => {
+            const el = document.getElementById('server-version');
+            if (el && cfg.version) el.textContent = 'v' + cfg.version;
+        }).catch(() => {});
 
-        // Configura links de acesso
-        document.getElementById('reg-btn-use-online').href = `/app?token=${data.download_token}`;
-        document.getElementById('reg-btn-dl-lic').href = `/api/download-lic/${data.download_token}`;
-        document.getElementById('reg-access-options').style.display = 'block';
+        // Troca para a tela de acesso
+        showScreen('access');
 
     } catch(e) {
         showMsg('reg-msg', 'error', 'Erro de conexão. Tente novamente.');
@@ -337,15 +340,15 @@ fetch('/api/config').then(r => r.json()).then(cfg => {
     }
 }).catch(() => {});
 
-// Atalho de teclado: Enter submete o painel ativo
+// Enter submete o formulário ativo
 document.addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
-    if (document.getElementById('panel-login').classList.contains('active')) doLogin();
-    else doRegister();
+    if (document.getElementById('screen-login').classList.contains('active')) doLogin();
+    else if (document.getElementById('screen-register').classList.contains('active')) doRegister();
 });
 
-// Query string: ?tab=register abre direto no registro
-if (new URLSearchParams(window.location.search).get('tab') === 'register') showPanel('register');
+// ?tab=register abre direto no registro
+if (new URLSearchParams(window.location.search).get('tab') === 'register') showScreen('register');
 </script>
 </body>
 </html>
