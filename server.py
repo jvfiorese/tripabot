@@ -228,15 +228,15 @@ def app_online():
     lic_data = {}
     try:
         import base64 as _b64, json as _json
-        payload_b64 = token_data['lic_content'].split('.')[0]
-        lic_data = _json.loads(_b64.b64decode(payload_b64 + '==').decode())
+        payload_b64 = token_data['lic_content']
+        lic_data = _json.loads(_b64.b64decode(payload_b64).decode())
     except Exception:
         pass
 
     user_info = {
         'email':         user['email'] if user else '',
         'plan':          lic_data.get('plan', user['status'] if user else 'trial'),
-        'expires_at':    lic_data.get('expires_at', ''),
+        'expires_at':    lic_data.get('expires', ''),
         'contact_email': CONTACT_EMAIL,
         'version':       APP_VERSION,
     }
