@@ -53,6 +53,7 @@ SECRET_KEY      = os.environ.get('TRIPABOT_SECRET_KEY', '')
 ADMIN_PASSWORD  = os.environ.get('ADMIN_PASSWORD', '')
 PIX_KEY         = os.environ.get('PIX_KEY', 'Configure PIX_KEY no .env')
 CONTACT_EMAIL   = os.environ.get('CONTACT_EMAIL', '')
+APP_VERSION     = '1.1.0'
 
 # Tokens de admin — usa funções do database.py (compatível com SQLite e PostgreSQL)
 def _admin_token_valid(token):
@@ -148,7 +149,7 @@ def renovar():
 @app.route('/api/config')
 def api_config():
     """Configurações públicas do servidor (sem dados sensíveis)."""
-    return jsonify({'pix_key': PIX_KEY, 'contact_email': CONTACT_EMAIL})
+    return jsonify({'pix_key': PIX_KEY, 'contact_email': CONTACT_EMAIL, 'version': APP_VERSION})
 
 
 @app.route('/download-html')

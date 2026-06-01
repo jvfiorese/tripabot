@@ -314,7 +314,7 @@ def is_license_revoked(email, issued_at):
 
 # ── Pagamentos ────────────────────────────────────────────────
 
-def create_payment(user_id, amount=50.0, notes=''):
+def create_payment(user_id, amount=20.0, notes=''):
     conn = _conn()
     try:
         if USE_PG:

@@ -141,12 +141,16 @@ small { font-size: 11px; color: #aaa; display: block; margin-top: 8px; text-alig
         <div id="login-msg" class="msg"></div>
         <div id="login-download" class="download-area">
             <h3>✅ Login realizado!</h3>
-            <p style="font-size:13px;color:#666;margin-bottom:12px;">Baixe seu arquivo de licença atualizado:</p>
+            <p style="font-size:13px;color:#666;margin-bottom:12px;">Baixe os arquivos atualizados:</p>
             <a id="dl-login-lic" class="download-btn" href="#">📥 Baixar tripabot.lic</a>
+            <a class="download-btn secondary" href="/download-html">📥 Baixar TripaBot.html</a>
             <div class="instructions">
-                <strong>Substituir licença:</strong><br>
-                Substitua o arquivo <code>tripabot.lic</code> antigo pelo novo baixado.<br>
-                Mantenha <code>TripaBot.html</code> e <code>tripabot.lic</code> na mesma pasta.
+                <strong>Atualizar licença:</strong><br>
+                Substitua o <code>tripabot.lic</code> antigo pelo novo baixado.<br><br>
+                <strong>Atualizar o programa:</strong><br>
+                Baixe o <code>TripaBot.html</code> para ter a versão mais recente.<br>
+                Sempre baixe os 2 arquivos para garantir compatibilidade.<br><br>
+                <strong>Versão atual do servidor:</strong> <span id="login-server-version" style="font-weight:600;color:#1565c0;">—</span>
             </div>
         </div>
     </div>
@@ -245,6 +249,12 @@ async function doLogin() {
 
         document.getElementById('dl-login-lic').href = `/api/download-lic/${data.download_token}`;
         document.getElementById('login-download').style.display = 'block';
+
+        // Mostra versão atual do servidor
+        fetch('/api/config').then(r => r.json()).then(cfg => {
+            const vEl = document.getElementById('login-server-version');
+            if (vEl && cfg.version) vEl.textContent = 'v' + cfg.version;
+        }).catch(() => {});
 
     } catch(e) {
         showMsg('login-msg', 'error', 'Erro de conexão. Tente novamente.');

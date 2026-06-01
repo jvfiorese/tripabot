@@ -163,7 +163,7 @@ tr:hover td { background:#fafafa; }
 <div id="toast"></div>
 
 <script>
-let ADMIN_TOKEN = '';
+let ADMIN_TOKEN = sessionStorage.getItem('tb_admin_token') || '';
 
 // ─── HELPERS DE SEGURANÇA ────────────────────────────────────
 function esc(text) {
@@ -192,6 +192,7 @@ async function doAdminLogin() {
     }
 
     ADMIN_TOKEN = data.token;
+    sessionStorage.setItem('tb_admin_token', ADMIN_TOKEN);
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     loadAll();
@@ -199,6 +200,7 @@ async function doAdminLogin() {
 
 function logout() {
     ADMIN_TOKEN = '';
+    sessionStorage.removeItem('tb_admin_token');
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
 }
@@ -360,7 +362,7 @@ async function revokeUser(userId) {
     });
 
     if (res.ok) {
-        toast('Acesso revogado.', '');
+        toast('Acesso revogado.', 'success');
         setTimeout(loadUsers, 1000);
     }
 }
@@ -418,6 +420,20 @@ function toast(msg, type='') {
 document.getElementById('admin-pw').addEventListener('keydown', e => {
     if (e.key === 'Enter') doAdminLogin();
 });
+
+// Restaura sessão se token ainda válido
+if (ADMIN_TOKEN) {
+    fetch('/api/admin/users', { headers: authHeaders() }).then(res => {
+        if (res.ok) {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            loadAll();
+        } else {
+            sessionStorage.removeItem('tb_admin_token');
+            ADMIN_TOKEN = '';
+        }
+    }).catch(() => {});
+}
 </script>
 </body>
 </html>
