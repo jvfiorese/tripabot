@@ -21,6 +21,7 @@ Rotas:
 import os
 import re
 import json
+import hmac
 import base64
 import secrets
 import logging
