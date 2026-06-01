@@ -480,18 +480,35 @@ def get_all_ip_history(days=30):
     conn = _conn()
     try:
         cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-        cur = _run(conn, """
-            SELECT ds.email,
-                   COUNT(DISTINCT ds.ip) as unique_ips,
-                   GROUP_CONCAT(DISTINCT ds.ip, ',') as ips,
-                   u.ip_whitelist
-            FROM device_sessions ds
-            LEFT JOIN users u ON u.email = ds.email
-            WHERE ds.timestamp > ?
-            GROUP BY ds.email
-            ORDER BY unique_ips DESC
-        """, (cutoff_date,))
-        return _all(cur)
+        # STRING_AGG para PostgreSQL, GROUP_CONCAT para SQLite
+        if USE_PG:
+            sql = """
+                SELECT ds.email,
+                       COUNT(DISTINCT ds.ip) as unique_ips,
+                       STRING_AGG(DISTINCT ds.ip, ',') as ips,
+                       MAX(u.ip_whitelist) as ip_whitelist
+                FROM device_sessions ds
+                LEFT JOIN users u ON u.email = ds.email
+                WHERE ds.timestamp > %s
+                GROUP BY ds.email
+                ORDER BY unique_ips DESC
+            """
+        else:
+            sql = """
+                SELECT ds.email,
+                       COUNT(DISTINCT ds.ip) as unique_ips,
+                       GROUP_CONCAT(DISTINCT ds.ip) as ips,
+                       MAX(u.ip_whitelist) as ip_whitelist
+                FROM device_sessions ds
+                LEFT JOIN users u ON u.email = ds.email
+                WHERE ds.timestamp > ?
+                GROUP BY ds.email
+                ORDER BY unique_ips DESC
+            """
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) if USE_PG else conn.cursor()
+        cur.execute(sql, (cutoff_date,))
+        rows = cur.fetchall()
+        return [dict(r) for r in rows]
     finally:
         conn.close()
 

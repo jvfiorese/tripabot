@@ -84,22 +84,31 @@ def _admin_token_save(token):
     finally:
         conn.close()
 
+# P1-F: SECRET_KEY obrigatória — para execução se não estiver definida
 if not SECRET_KEY:
-    print("⚠️  ATENÇÃO: TRIPABOT_SECRET_KEY não definida no .env!")
+    raise RuntimeError("TRIPABOT_SECRET_KEY não está definida. Configure no .env ou nas variáveis de ambiente do Railway.")
 if not ADMIN_PASSWORD:
-    print("⚠️  ATENÇÃO: ADMIN_PASSWORD não definida no .env!")
+    raise RuntimeError("ADMIN_PASSWORD não está definida. Configure no .env ou nas variáveis de ambiente do Railway.")
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 
-# CORS: permite file:// (HTML offline) + domínio em produção
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+# P1-D: CORS restrito — permite domínio configurado + file:// (HTML offline)
+_CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
+CORS(app, resources={r"/api/*": {"origins": _CORS_ORIGINS}})
 
-# Headers de segurança em todas as respostas
+# P2-F: Headers de segurança em todas as respostas
 @app.after_request
 def set_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "connect-src 'self' https://tripabot-production.up.railway.app"
+    )
     return response
 
 # ─── Helpers ─────────────────────────────────────────────────
@@ -112,11 +121,28 @@ def check_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 
+def _mask_email(email: str) -> str:
+    """P2-E: Anonimiza email para logs (ex: jo***@gmail.com)."""
+    if not email or '@' not in email:
+        return '***'
+    local, domain = email.split('@', 1)
+    return local[:2] + '***@' + domain
+
+
+def _get_client_ip() -> str:
+    """Extrai IP real do cliente (considera X-Forwarded-For do Railway)."""
+    forwarded = request.headers.get('X-Forwarded-For', '')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return request.remote_addr or 'unknown'
+
+
 def admin_required(f):
-    """Decorator que exige token de admin válido."""
+    """Decorator que exige token de admin válido (apenas via header, nunca query string)."""
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = request.headers.get('X-Admin-Token') or request.args.get('token')
+        # P1-B: Apenas header — token em query string expõe em logs do servidor
+        token = request.headers.get('X-Admin-Token')
         if not token or not _admin_token_valid(token):
             return jsonify({'error': 'Não autorizado'}), 401
         return f(*args, **kwargs)
@@ -168,21 +194,39 @@ def download_html():
     )
 
 
-@app.route('/app')
+@app.route('/app', methods=['GET', 'POST'])
 def app_online():
     """
-    Serve tripabot.html para uso online (sem download).
-    Token de licença é passado via query string e injetado no HTML.
-    Requer validação: download_token DEVE ser válido (criado há menos de 30 min).
+    Serve tripabot.html para uso online.
+    P1-C: Token aceito via POST body (JSON) ou query string como fallback.
+    POST é preferível pois não expõe o token em logs do servidor.
     """
-    token = request.args.get('token', '').strip()
+    # Tenta POST body primeiro (mais seguro), depois query string (compatibilidade)
+    token = ''
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        token = data.get('token', '').strip()
     if not token:
-        return jsonify({'error': 'Token de acesso obrigatório. Faça login novamente.'}), 400
+        token = request.args.get('token', '').strip()
 
-    # Verifica se token é válido (existe e não expirou)
+    if not token:
+        # Retorna página de erro amigável (não JSON)
+        return Response(
+            '<html><body style="font-family:sans-serif;padding:40px;text-align:center">'
+            '<h2>⚠️ Acesso inválido</h2><p>Faça login em '
+            '<a href="/">tripabot.com.br</a> para acessar o app.</p></body></html>',
+            mimetype='text/html', status=400
+        )
+
+    # Verifica se token é válido (one-time-use — consumido aqui)
     token_data = get_download_token(token)
     if not token_data:
-        return jsonify({'error': 'Link expirado ou inválido. Faça login novamente.'}), 401
+        return Response(
+            '<html><body style="font-family:sans-serif;padding:40px;text-align:center">'
+            '<h2>⏰ Link expirado</h2><p>Faça login novamente em '
+            '<a href="/">tripabot.com.br</a>.</p></body></html>',
+            mimetype='text/html', status=401
+        )
 
     # Lê o HTML
     html_path = os.path.join(app.static_folder, 'tripabot.html')
@@ -192,8 +236,7 @@ def app_online():
     with open(html_path, 'r', encoding='utf-8') as f:
         html_content = f.read()
 
-    # Injeta a licença no HTML (vai ser carregada automaticamente)
-    # O tripabot.html procura por: window.__LIC_CONTENT__ = '...'
+    # Injeta a licença de forma segura via json.dumps (escapa automaticamente)
     lic_injection = f"\n<script>window.__LIC_CONTENT__ = {json.dumps(token_data['lic_content'])};</script>\n"
     html_content = html_content.replace('</head>', f'{lic_injection}</head>')
 
@@ -210,6 +253,9 @@ def api_register():
     password = (data.get('password') or '').strip()
     name     = (data.get('name') or '').strip()
 
+    # P2-C: Limites de comprimento
+    if len(email) > 254 or len(password) > 128 or len(name) > 100:
+        return jsonify({'error': 'Dados muito longos'}), 400
     if not email or not password:
         return jsonify({'error': 'Email e senha são obrigatórios'}), 400
     if len(password) < 6:
@@ -244,16 +290,27 @@ def api_register():
 @app.route('/api/login', methods=['POST'])
 def api_login():
     """Login do usuário. Retorna token de download da licença mais recente."""
+    # P1-A: Rate limiting em /api/login (reutiliza as funções do admin)
+    ip = _get_client_ip()
+    if _rate_limit_check(ip):
+        return jsonify({'error': 'Muitas tentativas. Aguarde 5 minutos.'}), 429
+
     data = request.get_json(silent=True) or {}
     email    = (data.get('email') or '').strip().lower()
     password = (data.get('password') or '').strip()
 
+    # P2-C: Limites de comprimento
+    if len(email) > 254 or len(password) > 128:
+        return jsonify({'error': 'Dados inválidos'}), 400
     if not email or not password:
         return jsonify({'error': 'Email e senha são obrigatórios'}), 400
 
     user = get_user_by_email(email)
     if not user or not check_password(password, user['password_hash']):
+        _rate_limit_record(ip)  # Registra falha
         return jsonify({'error': 'Email ou senha incorretos'}), 401
+
+    _rate_limit_clear(ip)  # Login bem-sucedido limpa tentativas
 
     if user['status'] == 'revoked':
         return jsonify({'error': 'Acesso revogado. Entre em contato com o suporte.'}), 403
@@ -285,27 +342,29 @@ def api_verify():
     lic_content = (data.get('lic_content') or '').strip()
     email       = (data.get('email') or '').strip().lower()
 
-    print(f"[VERIFY] Request from {email[:10] if email else '?'}...")
+    # P2-C: Limites de comprimento (lic_content base64 de ~500 bytes → ~700 chars)
+    if len(lic_content) > 4096 or len(email) > 254:
+        return jsonify({'valid': False, 'reason': 'invalid_format'}), 400
+
+    logger.info(f"[VERIFY] Request from {_mask_email(email)}")
 
     if not lic_content or not email:
-        print(f"[VERIFY] Missing data: lic={bool(lic_content)}, email={bool(email)}")
         return jsonify({'valid': False, 'reason': 'missing_data'}), 400
 
-    # Verifica assinatura e expiração
+    # Verifica assinatura HMAC e expiração (única verificação criptográfica — cliente não tem a chave)
     result = verify_license_content(lic_content)
     if not result['valid']:
-        print(f"[VERIFY] Invalid signature/expiration: {result.get('reason')}")
+        logger.warning(f"[VERIFY] Inválido ({result.get('reason')}): {_mask_email(email)}")
         return jsonify(result)
 
     # Verifica se usuário foi revogado no banco
     user = get_user_by_email(email)
     if not user:
-        print(f"[VERIFY] User not found: {email}")
+        logger.warning(f"[VERIFY] Usuário não encontrado: {_mask_email(email)}")
         return jsonify({'valid': False, 'reason': 'user_not_found'})
 
-    print(f"[VERIFY] User status: {user['status']} (id={user['id']})")
     if user['status'] == 'revoked':
-        print(f"[VERIFY] ❌ USER REVOKED: {email}")
+        logger.warning(f"[VERIFY] ❌ Revogado: {_mask_email(email)}")
         return jsonify({'valid': False, 'reason': 'revoked'})
 
     # Verifica se a licença específica foi revogada
@@ -313,17 +372,16 @@ def api_verify():
         payload = json.loads(base64.b64decode(lic_content).decode())
         issued = payload.get('issued')
         if is_license_revoked(email, issued):
-            print(f"[VERIFY] ❌ LICENSE REVOKED: {email} issued={issued}")
+            logger.warning(f"[VERIFY] ❌ Licença revogada: {_mask_email(email)}")
             return jsonify({'valid': False, 'reason': 'license_revoked'})
-    except Exception as e:
-        print(f"[VERIFY] Exception parsing lic_content: {e}")
+    except Exception:
         return jsonify({'valid': False, 'reason': 'invalid_format'})
 
-    print(f"[VERIFY] ✅ VALID: {email}")
+    logger.info(f"[VERIFY] ✅ Válido: {_mask_email(email)}")
     update_last_verified(user['id'])
 
     # Registra IP + timestamp para IP telemetry
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr or 'unknown').split(',')[0].strip()
+    ip = _get_client_ip()
     user_agent = request.headers.get('User-Agent', '')
     save_device_session(email, ip, user_agent)
 
@@ -388,7 +446,7 @@ def _rate_limit_check(ip: str) -> bool:
         row = _one(cur)
         return (row['cnt'] if row else 0) >= 5
     except Exception:
-        return False
+        return True  # P2-A: Falha fechada — se banco cair, bloquear por segurança
     finally:
         conn.close()
 
@@ -420,24 +478,25 @@ def _rate_limit_clear(ip: str):
 @app.route('/api/admin/login', methods=['POST'])
 def api_admin_login():
     """Login do admin com senha do .env. Rate limiting persistente: 5 tentativas/5min."""
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr or 'unknown').split(',')[0].strip()
+    ip = _get_client_ip()
 
     if _rate_limit_check(ip):
-        logger.warning(f"[ADMIN] Rate limit atingido para IP {ip}")
+        logger.warning(f"[ADMIN] Rate limit: IP {ip}")
         return jsonify({'error': 'Muitas tentativas. Aguarde 5 minutos.'}), 429
 
     data = request.get_json(silent=True) or {}
     password = (data.get('password') or '').strip()
 
-    if not ADMIN_PASSWORD or password != ADMIN_PASSWORD:
+    # P1-E: Comparação timing-safe para prevenir timing attacks
+    if not hmac.compare_digest(password, ADMIN_PASSWORD):
         _rate_limit_record(ip)
-        logger.warning(f"[ADMIN] Senha incorreta para IP {ip}")
+        logger.warning(f"[ADMIN] Senha incorreta: IP {ip}")
         return jsonify({'error': 'Senha incorreta'}), 401
 
     _rate_limit_clear(ip)
     token = secrets.token_urlsafe(32)
     _admin_token_save(token)
-    logger.info(f"[ADMIN] Login bem-sucedido de IP {ip}")
+    logger.info(f"[ADMIN] Login: IP {ip}")
     return jsonify({'success': True, 'token': token})
 
 
@@ -543,8 +602,9 @@ def api_admin_fraud_report():
     Relatório de detecção de fraude.
     Retorna usuários com múltiplos IPs, excluindo IPs whitelistados da contagem.
     """
-    days = request.args.get('days', 30, type=int)
-    min_ips = request.args.get('min_ips', 3, type=int)
+    # P2-D: Validação de range nos parâmetros de query
+    days = max(1, min(request.args.get('days', 30, type=int), 365))
+    min_ips = max(1, min(request.args.get('min_ips', 3, type=int), 100))
 
     all_history = get_all_ip_history(days=days)
 

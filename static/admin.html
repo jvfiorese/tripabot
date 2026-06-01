@@ -360,11 +360,19 @@ async function approvePayment(paymentId) {
         }
 
         if (row) {
-            row.querySelector('td:last-child').innerHTML =
-                `✓ Aprovado! <a class="dl-link" href="${data.download_url}" target="_blank">Baixar .lic</a>`;
+            // Valida URL antes de inserir (previne XSS via javascript: scheme)
+            const safeUrl = (data.download_url || '').startsWith('/api/download-lic/') ? data.download_url : '#';
+            const td = row.querySelector('td:last-child');
+            td.textContent = '✓ Aprovado! ';
+            const link = document.createElement('a');
+            link.className = 'dl-link';
+            link.href = safeUrl;
+            link.target = '_blank';
+            link.textContent = 'Baixar .lic';
+            td.appendChild(link);
         }
 
-        toast(`✓ Licença gerada para ${email}! Link de download disponível.`, 'success');
+        toast(`✓ Licença gerada para ${esc(email)}! Link de download disponível.`, 'success');
         setTimeout(loadAll, 1500);
     } finally {
         _busy.delete(`approve-${paymentId}`);
@@ -433,8 +441,10 @@ async function genLic(userId, days) {
             return;
         }
 
-        toast(`✓ Licença gerada para ${data.email}! Expira: ${formatDate(data.expires_at)}`, 'success');
-        window.open(data.download_url, '_blank');
+        toast(`✓ Licença gerada para ${esc(data.email)}! Expira: ${formatDate(data.expires_at)}`, 'success');
+        // Valida URL antes de abrir (previne XSS via javascript: scheme)
+        const safeUrl = (data.download_url || '').startsWith('/api/download-lic/') ? data.download_url : null;
+        if (safeUrl) window.open(safeUrl, '_blank');
         setTimeout(loadAll, 1500);
     } finally {
         _busy.delete(key);

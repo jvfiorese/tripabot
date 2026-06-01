@@ -171,7 +171,7 @@ input:focus { border-color: #e85252; }
         <h3>Bem-vindo! 👋</h3>
         <div class="subtitle" id="access-subtitle">Como deseja usar o TripaBot?</div>
 
-        <a id="btn-use-online" class="btn-online" href="#">🚀 Usar Agora (Online)</a>
+        <a id="btn-use-online" class="btn-online" href="#" onclick="openAppOnline(); return false;">🚀 Usar Agora (Online)</a>
 
         <div class="divider">ou baixar para usar offline</div>
 
@@ -262,8 +262,8 @@ async function doLogin() {
             return;
         }
 
-        // Configura links
-        document.getElementById('btn-use-online').href = `/app?token=${data.download_token}`;
+        // P1-C: Guarda token para uso via POST (não expõe em URL)
+        window._tb_access_token = data.download_token;
         document.getElementById('btn-dl-lic').href = `/api/download-lic/${data.download_token}`;
 
         // Mostra validade no subtítulo
@@ -314,8 +314,8 @@ async function doRegister() {
             return;
         }
 
-        // Configura links
-        document.getElementById('btn-use-online').href = `/app?token=${data.download_token}`;
+        // P1-C: Guarda token para uso via POST (não expõe em URL)
+        window._tb_access_token = data.download_token;
         document.getElementById('btn-dl-lic').href = `/api/download-lic/${data.download_token}`;
         document.getElementById('access-subtitle').textContent = 'Conta criada! Seus 30 dias de trial começaram.';
 
@@ -334,6 +334,37 @@ async function doRegister() {
         btn.disabled = false;
         btn.textContent = 'Criar conta grátis →';
     }
+}
+
+// P1-C: Abre o app via POST (token não fica na URL/logs do servidor)
+function openAppOnline() {
+    const token = window._tb_access_token;
+    if (!token) { alert('Faça login primeiro.'); return; }
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/app';
+    form.target = '_blank';
+    form.style.display = 'none';
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'token'; inp.value = token;
+    // Envia como JSON via fetch e abre em nova aba
+    fetch('/app', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({token})
+    }).then(r => {
+        if (!r.ok) throw new Error('Token inválido');
+        return r.text();
+    }).then(html => {
+        const w = window.open('', '_blank');
+        w.document.write(html);
+        w.document.close();
+        // Limpa token após uso (one-time)
+        window._tb_access_token = null;
+    }).catch(() => {
+        alert('Link expirado. Faça login novamente.');
+        showScreen('login');
+    });
 }
 
 // Carrega email de contato

@@ -95,32 +95,33 @@ def verify_license_content(lic_content: str) -> dict:
     except Exception:
         return {'valid': False, 'reason': 'invalid_format'}
 
-    # Recalcula assinatura
-    to_sign = f"{payload['email']}|{payload['issued']}|{payload['expires']}|{payload['plan']}|{payload['nonce']}"
+    # P2-B: Valida campos obrigatórios antes de acessar (evita KeyError)
+    required = ('email', 'issued', 'expires', 'plan', 'nonce', 'sig')
+    if not all(payload.get(f) for f in required):
+        return {'valid': False, 'reason': 'invalid_format'}
+
+    email   = payload.get('email', '')
+    issued  = payload.get('issued', '')
+    expires = payload.get('expires', '')
+    plan    = payload.get('plan', '')
+    nonce   = payload.get('nonce', '')
+    sig     = payload.get('sig', '')
+
+    # Recalcula assinatura HMAC
+    to_sign = f"{email}|{issued}|{expires}|{plan}|{nonce}"
     expected_sig = _sign(to_sign)
 
-    if not hmac.compare_digest(expected_sig, payload.get('sig', '')):
+    if not hmac.compare_digest(expected_sig, sig):
         return {'valid': False, 'reason': 'invalid_signature'}
 
     # Verifica expiração
     try:
-        expires_dt = datetime.strptime(payload['expires'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+        expires_dt = datetime.strptime(expires, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
     except Exception:
         return {'valid': False, 'reason': 'invalid_date'}
 
     now = datetime.now(timezone.utc)
     if now > expires_dt:
-        return {
-            'valid': False,
-            'reason': 'expired',
-            'email': payload.get('email'),
-            'expires': payload.get('expires'),
-        }
+        return {'valid': False, 'reason': 'expired', 'email': email, 'expires': expires}
 
-    return {
-        'valid':   True,
-        'email':   payload.get('email'),
-        'issued':  payload.get('issued'),
-        'expires': payload.get('expires'),
-        'plan':    payload.get('plan'),
-    }
+    return {'valid': True, 'email': email, 'issued': issued, 'expires': expires, 'plan': plan}
