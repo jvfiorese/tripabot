@@ -43,7 +43,8 @@ from database import (
     save_license, get_latest_license, revoke_all_licenses, is_license_revoked,
     create_payment, get_pending_payments, approve_payment, reject_payment,
     save_download_token, get_download_token,
-    save_device_session, get_user_ip_history, get_all_ip_history
+    save_device_session, get_user_ip_history, get_all_ip_history,
+    update_ip_whitelist, get_ip_whitelist
 )
 from license_gen import generate_license, verify_license_content
 
@@ -508,38 +509,6 @@ def api_admin_revoke(user_id):
     return jsonify({'success': True})
 
 
-@app.route('/api/admin/fraud-report')
-@admin_required
-def api_admin_fraud_report():
-    """
-    Relatório de detecção de fraude.
-    Mostra usuários com múltiplos IPs nos últimos 30 dias.
-    """
-    days = request.args.get('days', 30, type=int)
-    min_ips = request.args.get('min_ips', 5, type=int)
-
-    all_history = get_all_ip_history(days=days)
-
-    # Filtra usuários com múltiplos IPs
-    suspicious = [
-        {
-            'email': item['email'],
-            'unique_ips': item['unique_ips'],
-            'ips': item['ips'].split(',') if item['ips'] else [],
-            'risk_level': 'high' if item['unique_ips'] >= 10 else 'medium' if item['unique_ips'] >= 5 else 'low'
-        }
-        for item in all_history
-        if item['unique_ips'] >= min_ips
-    ]
-
-    return jsonify({
-        'total_users': len(all_history),
-        'suspicious_count': len(suspicious),
-        'days_analyzed': days,
-        'suspicious_users': sorted(suspicious, key=lambda x: x['unique_ips'], reverse=True)
-    })
-
-
 @app.route('/api/admin/ip-history/<email>')
 @admin_required
 def api_admin_ip_history(email):
@@ -547,6 +516,67 @@ def api_admin_ip_history(email):
     email = email.lower().strip()
     ip_history = get_user_ip_history(email, days=30)
     return jsonify({'email': email, 'ip_history': ip_history})
+
+
+@app.route('/api/admin/whitelist/<int:user_id>', methods=['GET', 'POST'])
+@admin_required
+def api_admin_whitelist(user_id):
+    """Lê ou atualiza a lista de IPs confiáveis de um usuário."""
+    if request.method == 'GET':
+        whitelist = get_ip_whitelist(user_id)
+        return jsonify({'user_id': user_id, 'ip_whitelist': whitelist})
+
+    data = request.get_json(silent=True) or {}
+    raw = data.get('ip_whitelist', '')
+    # Limpa: remove espaços extras, valida formato mínimo
+    ips = [ip.strip() for ip in raw.replace('\n', ',').split(',') if ip.strip()]
+    clean = ','.join(ips)
+    update_ip_whitelist(user_id, clean)
+    logger.info(f"[ADMIN] Whitelist atualizada: user_id={user_id} ips={clean}")
+    return jsonify({'success': True, 'ip_whitelist': clean})
+
+
+@app.route('/api/admin/fraud-report')
+@admin_required
+def api_admin_fraud_report():
+    """
+    Relatório de detecção de fraude.
+    Retorna usuários com múltiplos IPs, excluindo IPs whitelistados da contagem.
+    """
+    days = request.args.get('days', 30, type=int)
+    min_ips = request.args.get('min_ips', 3, type=int)
+
+    all_history = get_all_ip_history(days=days)
+
+    result = []
+    for item in all_history:
+        all_ips = [ip.strip() for ip in (item.get('ips') or '').split(',') if ip.strip()]
+        whitelist = [ip.strip() for ip in (item.get('ip_whitelist') or '').split(',') if ip.strip()]
+
+        trusted = [ip for ip in all_ips if ip in whitelist]
+        suspicious = [ip for ip in all_ips if ip not in whitelist]
+        unique_suspicious = len(set(suspicious))
+
+        result.append({
+            'email': item['email'],
+            'unique_ips': item['unique_ips'],
+            'unique_suspicious': unique_suspicious,
+            'trusted_ips': list(set(trusted)),
+            'suspicious_ips': list(set(suspicious)),
+            'all_ips': list(set(all_ips)),
+            'risk_level': 'high' if unique_suspicious >= 10 else 'medium' if unique_suspicious >= 4 else 'low'
+        })
+
+    # Ordena por IPs suspeitos
+    result.sort(key=lambda x: x['unique_suspicious'], reverse=True)
+    suspicious_count = sum(1 for r in result if r['unique_suspicious'] >= min_ips)
+
+    return jsonify({
+        'total_users': len(result),
+        'suspicious_count': suspicious_count,
+        'days_analyzed': days,
+        'users': result
+    })
 
 
 @app.route('/api/admin/generate-lic/<int:user_id>', methods=['POST'])

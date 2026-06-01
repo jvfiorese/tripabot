@@ -82,7 +82,8 @@ def init_db():
                 trial_expires TEXT,
                 paid_expires TEXT,
                 last_verified TEXT,
-                payment_notes TEXT
+                payment_notes TEXT,
+                ip_whitelist TEXT DEFAULT ''
             )""",
             """CREATE TABLE IF NOT EXISTS licenses (
                 id SERIAL PRIMARY KEY,
@@ -150,7 +151,8 @@ def init_db():
                 trial_expires TEXT,
                 paid_expires TEXT,
                 last_verified TEXT,
-                payment_notes TEXT
+                payment_notes TEXT,
+                ip_whitelist TEXT DEFAULT ''
             );
             CREATE TABLE IF NOT EXISTS licenses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -206,8 +208,30 @@ def init_db():
         """)
 
     conn.commit()
+
+    # ── Migrações de colunas novas (ALTER TABLE seguro) ────────
+    _migrate_add_column(conn, 'users', 'ip_whitelist', "TEXT DEFAULT ''")
+
+    conn.commit()
     conn.close()
     print("[DB] Tabelas inicializadas ✓")
+
+
+def _migrate_add_column(conn, table, column, col_def):
+    """Adiciona coluna se ainda não existir (compatível com SQLite e PG)."""
+    try:
+        if USE_PG:
+            cur = conn.cursor()
+            cur.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {col_def}")
+        else:
+            cur = conn.cursor()
+            cur.execute(f"PRAGMA table_info({table})")
+            cols = [row[1] for row in cur.fetchall()]
+            if column not in cols:
+                cur.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_def}")
+        conn.commit()
+    except Exception as e:
+        print(f"[DB] Migração {table}.{column}: {e}")
 
 
 # ── Usuários ──────────────────────────────────────────────────
@@ -452,18 +476,43 @@ def get_user_ip_history(email, days=30):
 
 
 def get_all_ip_history(days=30):
-    """Retorna histórico de todos os usuários para detecção de fraude."""
+    """Retorna histórico de todos os usuários para detecção de fraude (inclui ip_whitelist)."""
     conn = _conn()
     try:
         cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
         cur = _run(conn, """
-            SELECT email, COUNT(DISTINCT ip) as unique_ips, GROUP_CONCAT(DISTINCT ip, ',') as ips
-            FROM device_sessions
-            WHERE timestamp > ?
-            GROUP BY email
+            SELECT ds.email,
+                   COUNT(DISTINCT ds.ip) as unique_ips,
+                   GROUP_CONCAT(DISTINCT ds.ip, ',') as ips,
+                   u.ip_whitelist
+            FROM device_sessions ds
+            LEFT JOIN users u ON u.email = ds.email
+            WHERE ds.timestamp > ?
+            GROUP BY ds.email
             ORDER BY unique_ips DESC
         """, (cutoff_date,))
         return _all(cur)
+    finally:
+        conn.close()
+
+
+def update_ip_whitelist(user_id, ip_whitelist):
+    """Atualiza a lista de IPs confiáveis de um usuário."""
+    conn = _conn()
+    try:
+        _run(conn, "UPDATE users SET ip_whitelist=? WHERE id=?", (ip_whitelist.strip(), user_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_ip_whitelist(user_id):
+    """Retorna a lista de IPs confiáveis de um usuário."""
+    conn = _conn()
+    try:
+        cur = _run(conn, "SELECT ip_whitelist FROM users WHERE id=?", (user_id,))
+        row = _one(cur)
+        return (row.get('ip_whitelist') or '') if row else ''
     finally:
         conn.close()
 

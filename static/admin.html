@@ -319,6 +319,7 @@ async function loadUsers() {
                 <td style="display:flex;gap:6px;flex-wrap:wrap;">
                     <button class="btn-gen" onclick="genLic(${u.id}, 365)">+ 1 ano</button>
                     <button class="btn-gen" style="background:#5c6bc0" onclick="genLic(${u.id}, 30)">+ 30 dias</button>
+                    <button class="btn-gen" style="background:#e65100" onclick="editWhitelist(${u.id}, '${esc(u.email)}')">🛡️ IPs</button>
                     ${u.status !== 'revoked'
                         ? `<button class="btn-revoke" onclick="revokeUser(${u.id})">Revogar</button>`
                         : ''}
@@ -441,7 +442,7 @@ async function genLic(userId, days) {
 }
 
 async function loadFraudReport() {
-    const res = await fetch('/api/admin/fraud-report', { headers: authHeaders() });
+    const res = await fetch('/api/admin/fraud-report?min_ips=2', { headers: authHeaders() });
     const data = await res.json();
 
     const container = document.getElementById('fraud-container');
@@ -449,47 +450,80 @@ async function loadFraudReport() {
 
     badge.textContent = data.suspicious_count;
 
-    if (!data.suspicious_users || !data.suspicious_users.length) {
-        container.innerHTML = '<div class="empty">✓ Nenhum usuário suspeito detectado</div>';
+    if (!data.users || !data.users.length) {
+        container.innerHTML = '<div class="empty">✓ Nenhum acesso registrado ainda</div>';
         return;
     }
 
-    const riskColors = {
-        'high': 'background:#ffcdd2;color:#c62828;',
-        'medium': 'background:#fff3cd;color:#856404;',
-        'low': 'background:#e8f5e9;color:#2e7d32;'
+    const riskLabel = { high: '🔴 ALTO', medium: '🟡 MÉDIO', low: '🟢 BAIXO' };
+    const riskStyle = {
+        high:   'background:#ffcdd2;color:#c62828;',
+        medium: 'background:#fff3cd;color:#856404;',
+        low:    'background:#e8f5e9;color:#2e7d32;'
     };
 
     container.innerHTML = `
+    <p style="font-size:12px;color:#999;margin-bottom:10px;">
+        IPs marcados com ✓ estão na whitelist (confiáveis). Apenas IPs suspeitos contam para o risco.
+    </p>
     <table>
         <thead>
             <tr>
                 <th>Email</th>
-                <th>IPs Únicos</th>
+                <th>IPs Suspeitos</th>
                 <th>Risco</th>
                 <th>IPs Detectados</th>
-                <th>Ações</th>
             </tr>
         </thead>
         <tbody>
-        ${data.suspicious_users.map(u => `
+        ${data.users.map(u => `
             <tr>
                 <td><div class="email">${esc(u.email)}</div></td>
-                <td><strong>${u.unique_ips}</strong></td>
-                <td><span style="${riskColors[u.risk_level]};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">${
-                    u.risk_level === 'high' ? '🔴 ALTO' : u.risk_level === 'medium' ? '🟡 MÉDIO' : '🟢 BAIXO'
-                }</span></td>
-                <td><span style="font-size:11px;color:#666;">${u.ips.join(', ')}</span></td>
-                <td style="display:flex;gap:6px;">
-                    <button class="btn-revoke" onclick="revokeUser(${
-                        // Precisa encontrar o user_id pelo email
-                        'null'
-                    })">Investigar</button>
+                <td><strong>${u.unique_suspicious}</strong>
+                    ${u.trusted_ips.length ? `<span style="color:#2e7d32;font-size:11px;"> (+${u.trusted_ips.length} confiável)</span>` : ''}
+                </td>
+                <td><span style="${riskStyle[u.risk_level]};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">
+                    ${riskLabel[u.risk_level]}
+                </span></td>
+                <td style="font-size:11px;color:#555;max-width:250px;">
+                    ${u.all_ips.map(ip =>
+                        u.trusted_ips.includes(ip)
+                            ? `<span style="color:#2e7d32;">✓ ${esc(ip)}</span>`
+                            : `<span style="color:#c62828;">⚠ ${esc(ip)}</span>`
+                    ).join(' &nbsp; ')}
                 </td>
             </tr>
         `).join('')}
         </tbody>
     </table>`;
+}
+
+async function editWhitelist(userId, email) {
+    const res = await fetch(`/api/admin/whitelist/${userId}`, { headers: authHeaders() });
+    const data = await res.json();
+    const current = data.ip_whitelist || '';
+
+    const newVal = prompt(
+        `IPs confiáveis de ${email}\n\n` +
+        `Separe por vírgula ou nova linha.\n` +
+        `Ex: 200.100.50.1, 10.0.0.1\n\n` +
+        `Deixe vazio para remover todos.`,
+        current
+    );
+    if (newVal === null) return; // cancelou
+
+    const res2 = await fetch(`/api/admin/whitelist/${userId}`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ ip_whitelist: newVal })
+    });
+    const d2 = await res2.json();
+    if (d2.success) {
+        toast(`✓ Whitelist de ${email} atualizada!`, 'success');
+        loadFraudReport();
+    } else {
+        toast('Erro ao salvar whitelist.', 'error');
+    }
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────
