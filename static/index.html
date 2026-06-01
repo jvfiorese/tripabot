@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TripaBot — Acesso</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iI2U4NTI1MiIvPjxsaW5lIHgxPSIxNiIgeTE9IjEiIHgyPSIxNiIgeTI9IjUiIHN0cm9rZT0iI2EwMjAyMCIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMSIgcj0iMiIgZmlsbD0iI2U4NTI1MiIvPjxjaXJjbGUgY3g9IjYiIGN5PSIxNiIgcj0iMy41IiBmaWxsPSIjYTAyMDIwIi8+PGNpcmNsZSBjeD0iMjYiIGN5PSIxNiIgcj0iMy41IiBmaWxsPSIjYTAyMDIwIi8+PHJlY3QgeD0iNyIgeT0iNiIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE4IiByeD0iNSIgZmlsbD0iIzFjMWMyZSIvPjxwYXRoIGQ9Ik0gMTEgMTUgUSAxMy41IDExLCAxNiAxNSIgc3Ryb2tlPSIjNWRmZmM1IiBzdHJva2Utd2lkdGg9IjEuOCIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTSAxNiAxNSBRIDE4LjUgMTEsIDIxIDE1IiBzdHJva2U9IiM1ZGZmYzUiIHN0cm9rZS13aWR0aD0iMS44IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNIDExLjUgMjAgUSAxNiAyNCwgMjAuNSAyMCIgc3Ryb2tlPSIjNWRmZmM1IiBzdHJva2Utd2lkdGg9IjEuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+"/>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
@@ -23,17 +24,35 @@ body {
     width: 100%;
     max-width: 420px;
 }
-.logo { text-align: center; margin-bottom: 28px; }
-.logo h1 { font-size: 26px; color: #e85252; font-weight: 800; }
-.logo p  { font-size: 13px; color: #999; margin-top: 4px; }
-.tabs { display: flex; border-bottom: 2px solid #f0f0f0; margin-bottom: 24px; }
-.tab {
-    flex: 1; padding: 10px; text-align: center;
-    font-size: 14px; font-weight: 600; color: #aaa;
-    cursor: pointer; border-bottom: 3px solid transparent;
-    margin-bottom: -2px; transition: all 0.2s;
+
+/* LOGO */
+.logo {
+    text-align: center;
+    margin-bottom: 32px;
 }
-.tab.active { color: #e85252; border-bottom-color: #e85252; }
+.logo-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 12px;
+    display: block;
+}
+.logo h1 {
+    font-size: 24px;
+    color: #1c1c2e;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+.logo p {
+    font-size: 12px;
+    color: #999;
+    margin-top: 4px;
+}
+
+/* PANELS */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* FORM */
 .form-group { margin-bottom: 16px; }
 label { font-size: 12px; font-weight: 600; color: #555; display: block; margin-bottom: 5px; }
 input[type=email], input[type=password], input[type=text] {
@@ -42,6 +61,8 @@ input[type=email], input[type=password], input[type=text] {
     font-size: 15px; outline: none; transition: border-color 0.15s;
 }
 input:focus { border-color: #e85252; }
+
+/* BUTTONS */
 .btn {
     width: 100%; padding: 13px;
     background: #e85252; color: white;
@@ -52,45 +73,116 @@ input:focus { border-color: #e85252; }
 }
 .btn:hover { background: #c94444; }
 .btn:disabled { background: #ccc; cursor: not-allowed; }
-.msg { margin-top: 16px; padding: 12px 14px; border-radius: 8px; font-size: 13px; display: none; }
+.btn-online {
+    width: 100%; padding: 13px;
+    background: #27ae60; color: white;
+    border: none; border-radius: 8px;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: background 0.15s;
+    text-decoration: none; display: block; text-align: center;
+    margin-top: 8px;
+}
+.btn-online:hover { background: #1e8449; }
+.btn-outline {
+    width: 100%; padding: 11px;
+    background: white; color: #555;
+    border: 1.5px solid #e0e0e0; border-radius: 8px;
+    font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s;
+    text-decoration: none; display: block; text-align: center;
+    margin-top: 8px;
+}
+.btn-outline:hover { border-color: #aaa; background: #fafafa; }
+
+/* MESSAGES */
+.msg { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-size: 13px; display: none; }
 .msg.success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
 .msg.error   { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
 .msg.info    { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
-.download-area { display: none; text-align: center; margin-top: 20px; }
-.download-area h3 { font-size: 16px; color: #222; margin-bottom: 12px; }
-.download-btn {
-    display: inline-block; padding: 11px 24px;
-    background: #1565c0; color: white; text-decoration: none;
-    border-radius: 8px; font-size: 14px; font-weight: 600;
-    margin: 5px; cursor: pointer;
+
+/* POST-LOGIN OPTIONS */
+.access-options { display: none; margin-top: 20px; }
+.access-options h3 {
+    font-size: 14px; font-weight: 700; color: #333;
+    margin-bottom: 12px; text-align: center;
 }
-.download-btn:hover { background: #0d47a1; }
-.download-btn.secondary { background: #6c757d; }
-.instructions {
-    background: #f8f9fa; border-radius: 8px;
-    padding: 14px; font-size: 12px; color: #555;
-    line-height: 1.7; margin-top: 16px; text-align: left;
+.divider {
+    display: flex; align-items: center; gap: 10px;
+    margin: 12px 0; color: #bbb; font-size: 12px;
 }
-.instructions strong { color: #333; }
-.panel { display: none; }
-.panel.active { display: block; }
-small { font-size: 11px; color: #aaa; display: block; margin-top: 8px; text-align: center; }
+.divider::before, .divider::after {
+    content: ''; flex: 1; height: 1px; background: #eee;
+}
+
+/* LINKS */
+.link-btn {
+    background: none; border: none; color: #e85252;
+    font-size: 13px; cursor: pointer; padding: 0;
+    text-decoration: underline;
+}
+.link-btn:hover { color: #c94444; }
+small { font-size: 12px; color: #aaa; display: block; margin-top: 16px; text-align: center; line-height: 1.6; }
+
+/* SERVER VERSION */
+.version-tag {
+    font-size: 11px; color: #bbb;
+    text-align: center; margin-top: 10px;
+}
 </style>
 </head>
 <body>
 <div class="card">
+    <!-- LOGO -->
     <div class="logo">
-        <h1>🩺 TripaBot</h1>
+        <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+            <rect width="64" height="64" rx="14" fill="#e85252"/>
+            <line x1="32" y1="2" x2="32" y2="10" stroke="#a02020" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="32" cy="2" r="4" fill="#e85252"/>
+            <circle cx="12" cy="32" r="7" fill="#a02020"/>
+            <circle cx="52" cy="32" r="7" fill="#a02020"/>
+            <rect x="14" y="12" width="36" height="36" rx="10" fill="#1c1c2e"/>
+            <path d="M 22 30 Q 27 22, 32 30" stroke="#5dffc5" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+            <path d="M 32 30 Q 37 22, 42 30" stroke="#5dffc5" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+            <path d="M 23 40 Q 32 48, 41 40" stroke="#5dffc5" stroke-width="3" fill="none" stroke-linecap="round"/>
+        </svg>
+        <h1>TripaBot</h1>
         <p>Padronização Médica — Gastroenterologia HBDF</p>
     </div>
 
-    <div class="tabs">
-        <div class="tab active" onclick="showTab('register')">Criar Conta</div>
-        <div class="tab" onclick="showTab('login')">Já Tenho Conta</div>
+    <!-- PANEL LOGIN (padrão) -->
+    <div id="panel-login" class="panel active">
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+            <label>Senha</label>
+            <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn" id="btn-login" onclick="doLogin()">Entrar →</button>
+
+        <div id="login-msg" class="msg"></div>
+
+        <!-- PÓS-LOGIN: opções de acesso -->
+        <div id="access-options" class="access-options">
+            <h3>Como deseja usar?</h3>
+            <a id="btn-use-online" class="btn-online" href="#">🚀 Usar Agora (Online)</a>
+            <div class="divider">ou baixar para usar offline</div>
+            <a id="btn-dl-lic" class="btn-outline" href="#">📥 Baixar Licença (.lic)</a>
+            <a class="btn-outline" href="/download-html">📥 Baixar Programa (.html)</a>
+            <div class="version-tag">Versão do servidor: <span id="server-version">—</span></div>
+        </div>
+
+        <small>
+            Não tem conta?
+            <button class="link-btn" onclick="showPanel('register')">Criar conta grátis</button>
+            &nbsp;·&nbsp;
+            <a id="contact-link" href="#" style="color:#aaa; font-size:12px;">Contato</a>
+        </small>
     </div>
 
-    <!-- REGISTRO -->
-    <div id="panel-register" class="panel active">
+    <!-- PANEL REGISTRO -->
+    <div id="panel-register" class="panel">
         <div class="form-group">
             <label>Nome</label>
             <input type="text" id="reg-name" placeholder="Seu nome completo">
@@ -103,67 +195,36 @@ small { font-size: 11px; color: #aaa; display: block; margin-top: 8px; text-alig
             <label>Senha (mínimo 6 caracteres)</label>
             <input type="password" id="reg-password" placeholder="••••••••">
         </div>
-        <button class="btn" id="btn-register" onclick="doRegister()">
-            Começar 30 dias grátis →
-        </button>
-        <div id="reg-msg" class="msg"></div>
-        <div id="reg-download" class="download-area">
-            <h3>✅ Conta criada com sucesso!</h3>
-            <p style="font-size:13px;color:#666;margin-bottom:12px;">Baixe os 2 arquivos e coloque na mesma pasta:</p>
-            <a id="dl-lic" class="download-btn" href="#">📥 Baixar tripabot.lic</a>
-            <a id="dl-html" class="download-btn secondary" href="/download-html">📥 Baixar TripaBot.html</a>
-            <div class="instructions">
-                <strong>Como usar:</strong><br>
-                1. Crie uma pasta: <code>TripaBot/</code><br>
-                2. Coloque os 2 arquivos na mesma pasta<br>
-                3. Abra o <code>TripaBot.html</code> no navegador<br>
-                4. ✓ Funciona offline após isso!<br><br>
-                <strong>Pendrive:</strong> Copie a pasta para o pendrive e use em qualquer PC.
-            </div>
-        </div>
-        <small>30 dias grátis. Depois, R$ 20/ano.</small>
-        <small style="margin-top:8px;">Dúvidas? <a id="contact-link" href="#" style="color:#e85252;">Entre em contato</a></small>
-    </div>
+        <button class="btn" id="btn-register" onclick="doRegister()">Criar conta grátis →</button>
 
-    <!-- LOGIN -->
-    <div id="panel-login" class="panel">
-        <div class="form-group">
-            <label>Email</label>
-            <input type="email" id="login-email" placeholder="seu@email.com">
+        <div id="reg-msg" class="msg"></div>
+
+        <!-- PÓS-REGISTRO: opções de acesso -->
+        <div id="reg-access-options" class="access-options">
+            <h3>Conta criada! Como deseja usar?</h3>
+            <a id="reg-btn-use-online" class="btn-online" href="#">🚀 Usar Agora (Online)</a>
+            <div class="divider">ou baixar para usar offline</div>
+            <a id="reg-btn-dl-lic" class="btn-outline" href="#">📥 Baixar Licença (.lic)</a>
+            <a class="btn-outline" href="/download-html">📥 Baixar Programa (.html)</a>
         </div>
-        <div class="form-group">
-            <label>Senha</label>
-            <input type="password" id="login-password" placeholder="••••••••">
-        </div>
-        <button class="btn" id="btn-login" onclick="doLogin()">
-            Entrar e Baixar Licença
-        </button>
-        <div id="login-msg" class="msg"></div>
-        <div id="login-download" class="download-area">
-            <h3>✅ Login realizado!</h3>
-            <p style="font-size:13px;color:#666;margin-bottom:12px;">Escolha como usar:</p>
-            <a id="dl-use-now" class="download-btn" href="#" style="background: #27ae60;">🚀 Usar Agora (Online)</a>
-            <a id="dl-login-lic" class="download-btn secondary" href="#">📥 Baixar Licença</a>
-            <a class="download-btn secondary" href="/download-html">📥 Baixar Programa</a>
-            <div class="instructions">
-                <strong>Atualizar licença:</strong><br>
-                Substitua o <code>tripabot.lic</code> antigo pelo novo baixado.<br><br>
-                <strong>Atualizar o programa:</strong><br>
-                Baixe o <code>TripaBot.html</code> para ter a versão mais recente.<br>
-                Sempre baixe os 2 arquivos para garantir compatibilidade.<br><br>
-                <strong>Versão atual do servidor:</strong> <span id="login-server-version" style="font-weight:600;color:#1565c0;">—</span>
-            </div>
-        </div>
+
+        <small style="margin-top: 12px;">
+            Já tem conta?
+            <button class="link-btn" onclick="showPanel('login')">Fazer login</button>
+        </small>
+        <small>30 dias grátis. Depois, R$ 20/ano.</small>
     </div>
 </div>
 
 <script>
-function showTab(tab) {
-    document.querySelectorAll('.tab').forEach((t,i) => {
-        t.classList.toggle('active', (i === 0 && tab === 'register') || (i === 1 && tab === 'login'));
+function showPanel(name) {
+    document.getElementById('panel-login').classList.toggle('active', name === 'login');
+    document.getElementById('panel-register').classList.toggle('active', name === 'register');
+    // Limpa mensagens ao trocar
+    ['login-msg','reg-msg'].forEach(id => {
+        const el = document.getElementById(id);
+        el.style.display = 'none';
     });
-    document.getElementById('panel-register').classList.toggle('active', tab === 'register');
-    document.getElementById('panel-login').classList.toggle('active', tab === 'login');
 }
 
 function showMsg(id, type, text) {
@@ -173,55 +234,9 @@ function showMsg(id, type, text) {
     el.textContent = text;
 }
 
-async function doRegister() {
-    const btn   = document.getElementById('btn-register');
-    const email = document.getElementById('reg-email').value.trim();
-    const password = document.getElementById('reg-password').value;
-    const name  = document.getElementById('reg-name').value.trim();
-
-    if (!email || !password) {
-        showMsg('reg-msg', 'error', 'Preencha email e senha.');
-        return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'Criando conta...';
-
-    try {
-        const res = await fetch('/api/register', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({email, password, name})
-        });
-        const data = await res.json();
-
-        if (!res.ok) {
-            showMsg('reg-msg', 'error', data.error || 'Erro ao criar conta.');
-            return;
-        }
-
-        showMsg('reg-msg', 'success', '✓ Conta criada! Baixe os arquivos abaixo.');
-
-        // Limpa campos após cadastro bem-sucedido
-        document.getElementById('reg-name').value = '';
-        document.getElementById('reg-email').value = '';
-        document.getElementById('reg-password').value = '';
-
-        // Configura link de download do .lic
-        document.getElementById('dl-lic').href = `/api/download-lic/${data.download_token}`;
-        document.getElementById('reg-download').style.display = 'block';
-
-    } catch(e) {
-        showMsg('reg-msg', 'error', 'Erro de conexão. Tente novamente.');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Começar 30 dias grátis →';
-    }
-}
-
 async function doLogin() {
-    const btn   = document.getElementById('btn-login');
-    const email = document.getElementById('login-email').value.trim();
+    const btn      = document.getElementById('btn-login');
+    const email    = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
 
     if (!email || !password) {
@@ -248,27 +263,71 @@ async function doLogin() {
         const expires = new Date(data.expires_at).toLocaleDateString('pt-BR');
         showMsg('login-msg', 'success', `✓ Licença válida até ${expires}`);
 
-        document.getElementById('dl-login-lic').href = `/api/download-lic/${data.download_token}`;
-        document.getElementById('dl-use-now').href = `/app?token=${data.download_token}`;
-        document.getElementById('login-download').style.display = 'block';
+        // Configura links de acesso
+        document.getElementById('btn-use-online').href = `/app?token=${data.download_token}`;
+        document.getElementById('btn-dl-lic').href = `/api/download-lic/${data.download_token}`;
+        document.getElementById('access-options').style.display = 'block';
 
-        // Mostra versão atual do servidor
+        // Mostra versão do servidor
         fetch('/api/config').then(r => r.json()).then(cfg => {
-            const vEl = document.getElementById('login-server-version');
-            if (vEl && cfg.version) vEl.textContent = 'v' + cfg.version;
+            const el = document.getElementById('server-version');
+            if (el && cfg.version) el.textContent = 'v' + cfg.version;
         }).catch(() => {});
 
     } catch(e) {
         showMsg('login-msg', 'error', 'Erro de conexão. Tente novamente.');
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Entrar e Baixar Licença';
+        btn.textContent = 'Entrar →';
     }
 }
 
-// Abre aba correta via query string (?tab=login)
-const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.get('tab') === 'login') showTab('login');
+async function doRegister() {
+    const btn      = document.getElementById('btn-register');
+    const email    = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const name     = document.getElementById('reg-name').value.trim();
+
+    if (!email || !password) {
+        showMsg('reg-msg', 'error', 'Preencha email e senha.');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Criando conta...';
+
+    try {
+        const res = await fetch('/api/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email, password, name})
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showMsg('reg-msg', 'error', data.error || 'Erro ao criar conta.');
+            return;
+        }
+
+        showMsg('reg-msg', 'success', '✓ Conta criada com sucesso!');
+
+        // Limpa campos
+        document.getElementById('reg-name').value = '';
+        document.getElementById('reg-email').value = '';
+        document.getElementById('reg-password').value = '';
+
+        // Configura links de acesso
+        document.getElementById('reg-btn-use-online').href = `/app?token=${data.download_token}`;
+        document.getElementById('reg-btn-dl-lic').href = `/api/download-lic/${data.download_token}`;
+        document.getElementById('reg-access-options').style.display = 'block';
+
+    } catch(e) {
+        showMsg('reg-msg', 'error', 'Erro de conexão. Tente novamente.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Criar conta grátis →';
+    }
+}
 
 // Carrega email de contato
 fetch('/api/config').then(r => r.json()).then(cfg => {
@@ -278,14 +337,15 @@ fetch('/api/config').then(r => r.json()).then(cfg => {
     }
 }).catch(() => {});
 
-// Enter para submeter
+// Atalho de teclado: Enter submete o painel ativo
 document.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-        const active = document.querySelector('.panel.active');
-        if (active.id === 'panel-register') doRegister();
-        else doLogin();
-    }
+    if (e.key !== 'Enter') return;
+    if (document.getElementById('panel-login').classList.contains('active')) doLogin();
+    else doRegister();
 });
+
+// Query string: ?tab=register abre direto no registro
+if (new URLSearchParams(window.location.search).get('tab') === 'register') showPanel('register');
 </script>
 </body>
 </html>
