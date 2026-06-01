@@ -120,12 +120,21 @@ def init_db():
                 ip TEXT NOT NULL,
                 created_at TEXT NOT NULL
             )""",
+            """CREATE TABLE IF NOT EXISTS device_sessions (
+                id SERIAL PRIMARY KEY,
+                email TEXT NOT NULL,
+                ip TEXT NOT NULL,
+                user_agent TEXT,
+                timestamp TEXT NOT NULL
+            )""",
             "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
             "CREATE INDEX IF NOT EXISTS idx_lic_uid ON licenses(user_id)",
             "CREATE INDEX IF NOT EXISTS idx_lic_email ON licenses(email)",
             "CREATE INDEX IF NOT EXISTS idx_pay_uid ON payments(user_id)",
             "CREATE INDEX IF NOT EXISTS idx_pay_status ON payments(status)",
             "CREATE INDEX IF NOT EXISTS idx_attempts_ip ON login_attempts(ip)",
+            "CREATE INDEX IF NOT EXISTS idx_device_sessions_email ON device_sessions(email)",
+            "CREATE INDEX IF NOT EXISTS idx_device_sessions_timestamp ON device_sessions(timestamp)",
         ]
         for stmt in statements:
             cur.execute(stmt)
@@ -179,12 +188,21 @@ def init_db():
                 ip TEXT NOT NULL,
                 created_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS device_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT NOT NULL,
+                ip TEXT NOT NULL,
+                user_agent TEXT,
+                timestamp TEXT NOT NULL
+            );
             CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
             CREATE INDEX IF NOT EXISTS idx_lic_uid ON licenses(user_id);
             CREATE INDEX IF NOT EXISTS idx_lic_email ON licenses(email);
             CREATE INDEX IF NOT EXISTS idx_pay_uid ON payments(user_id);
             CREATE INDEX IF NOT EXISTS idx_pay_status ON payments(status);
             CREATE INDEX IF NOT EXISTS idx_attempts_ip ON login_attempts(ip);
+            CREATE INDEX IF NOT EXISTS idx_device_sessions_email ON device_sessions(email);
+            CREATE INDEX IF NOT EXISTS idx_device_sessions_timestamp ON device_sessions(timestamp);
         """)
 
     conn.commit()
@@ -397,6 +415,55 @@ def save_download_token(token, user_id, lic_content, expires_at):
             VALUES (?, ?, ?, ?)
         """, (token, user_id, lic_content, expires_at))
         conn.commit()
+    finally:
+        conn.close()
+
+
+def save_device_session(email, ip, user_agent=''):
+    """Registra uma sessão de dispositivo (para IP telemetry)."""
+    conn = _conn()
+    try:
+        _run(conn, """
+            INSERT INTO device_sessions (email, ip, user_agent, timestamp)
+            VALUES (?, ?, ?, ?)
+        """, (email, ip, user_agent, _now()))
+        conn.commit()
+    except Exception as e:
+        print(f"[DB] Erro ao salvar device_session: {e}")
+    finally:
+        conn.close()
+
+
+def get_user_ip_history(email, days=30):
+    """Retorna histórico de IPs de um usuário nos últimos N dias."""
+    conn = _conn()
+    try:
+        cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        cur = _run(conn, """
+            SELECT DISTINCT ip, COUNT(*) as access_count
+            FROM device_sessions
+            WHERE email = ? AND timestamp > ?
+            GROUP BY ip
+            ORDER BY access_count DESC
+        """, (email, cutoff_date))
+        return _all(cur)
+    finally:
+        conn.close()
+
+
+def get_all_ip_history(days=30):
+    """Retorna histórico de todos os usuários para detecção de fraude."""
+    conn = _conn()
+    try:
+        cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        cur = _run(conn, """
+            SELECT email, COUNT(DISTINCT ip) as unique_ips, GROUP_CONCAT(DISTINCT ip, ',') as ips
+            FROM device_sessions
+            WHERE timestamp > ?
+            GROUP BY email
+            ORDER BY unique_ips DESC
+        """, (cutoff_date,))
+        return _all(cur)
     finally:
         conn.close()
 

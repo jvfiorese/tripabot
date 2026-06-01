@@ -42,7 +42,8 @@ from database import (
     update_user_status, update_user_trial, update_last_verified,
     save_license, get_latest_license, revoke_all_licenses, is_license_revoked,
     create_payment, get_pending_payments, approve_payment, reject_payment,
-    save_download_token, get_download_token
+    save_download_token, get_download_token,
+    save_device_session, get_user_ip_history, get_all_ip_history
 )
 from license_gen import generate_license, verify_license_content
 
@@ -53,7 +54,7 @@ SECRET_KEY      = os.environ.get('TRIPABOT_SECRET_KEY', '')
 ADMIN_PASSWORD  = os.environ.get('ADMIN_PASSWORD', '')
 PIX_KEY         = os.environ.get('PIX_KEY', 'Configure PIX_KEY no .env')
 CONTACT_EMAIL   = os.environ.get('CONTACT_EMAIL', '')
-APP_VERSION     = '1.1.0'
+APP_VERSION     = '1.2.0'  # Forced check-in + IP telemetry
 
 # Tokens de admin — usa funções do database.py (compatível com SQLite e PostgreSQL)
 def _admin_token_valid(token):
@@ -164,6 +165,38 @@ def download_html():
         as_attachment=True,
         download_name='TripaBot.html'
     )
+
+
+@app.route('/app')
+def app_online():
+    """
+    Serve tripabot.html para uso online (sem download).
+    Token de licença é passado via query string e injetado no HTML.
+    Requer validação: download_token DEVE ser válido (criado há menos de 30 min).
+    """
+    token = request.args.get('token', '').strip()
+    if not token:
+        return jsonify({'error': 'Token de acesso obrigatório. Faça login novamente.'}), 400
+
+    # Verifica se token é válido (existe e não expirou)
+    token_data = get_download_token(token)
+    if not token_data:
+        return jsonify({'error': 'Link expirado ou inválido. Faça login novamente.'}), 401
+
+    # Lê o HTML
+    html_path = os.path.join(app.static_folder, 'tripabot.html')
+    if not os.path.exists(html_path):
+        return jsonify({'error': 'Arquivo não encontrado'}), 404
+
+    with open(html_path, 'r', encoding='utf-8') as f:
+        html_content = f.read()
+
+    # Injeta a licença no HTML (vai ser carregada automaticamente)
+    # O tripabot.html procura por: window.__LIC_CONTENT__ = '...'
+    lic_injection = f"\n<script>window.__LIC_CONTENT__ = {json.dumps(token_data['lic_content'])};</script>\n"
+    html_content = html_content.replace('</head>', f'{lic_injection}</head>')
+
+    return Response(html_content, mimetype='text/html')
 
 
 # ─── API Pública ─────────────────────────────────────────────
@@ -287,6 +320,12 @@ def api_verify():
 
     print(f"[VERIFY] ✅ VALID: {email}")
     update_last_verified(user['id'])
+
+    # Registra IP + timestamp para IP telemetry
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr or 'unknown').split(',')[0].strip()
+    user_agent = request.headers.get('User-Agent', '')
+    save_device_session(email, ip, user_agent)
+
     return jsonify({**result, 'email': email})
 
 
@@ -467,6 +506,47 @@ def api_admin_revoke(user_id):
     update_user_status(user_id, 'revoked')
     logger.warning(f"[ADMIN] Usuário revogado: id={user_id} email={user['email'] if user else '?'}")
     return jsonify({'success': True})
+
+
+@app.route('/api/admin/fraud-report')
+@admin_required
+def api_admin_fraud_report():
+    """
+    Relatório de detecção de fraude.
+    Mostra usuários com múltiplos IPs nos últimos 30 dias.
+    """
+    days = request.args.get('days', 30, type=int)
+    min_ips = request.args.get('min_ips', 5, type=int)
+
+    all_history = get_all_ip_history(days=days)
+
+    # Filtra usuários com múltiplos IPs
+    suspicious = [
+        {
+            'email': item['email'],
+            'unique_ips': item['unique_ips'],
+            'ips': item['ips'].split(',') if item['ips'] else [],
+            'risk_level': 'high' if item['unique_ips'] >= 10 else 'medium' if item['unique_ips'] >= 5 else 'low'
+        }
+        for item in all_history
+        if item['unique_ips'] >= min_ips
+    ]
+
+    return jsonify({
+        'total_users': len(all_history),
+        'suspicious_count': len(suspicious),
+        'days_analyzed': days,
+        'suspicious_users': sorted(suspicious, key=lambda x: x['unique_ips'], reverse=True)
+    })
+
+
+@app.route('/api/admin/ip-history/<email>')
+@admin_required
+def api_admin_ip_history(email):
+    """Mostra histórico de IPs de um usuário específico."""
+    email = email.lower().strip()
+    ip_history = get_user_ip_history(email, days=30)
+    return jsonify({'email': email, 'ip_history': ip_history})
 
 
 @app.route('/api/admin/generate-lic/<int:user_id>', methods=['POST'])

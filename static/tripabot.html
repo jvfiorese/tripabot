@@ -4498,6 +4498,38 @@ SINAIS DE ALERTA:
             console.log(`[TripaBot] Licença válida: ${email} até ${d}`);
         }
 
+        // Atualiza last_check_forced no .lic após validação bem-sucedida
+        function tbUpdateCheckForcedDate(licContent) {
+            try {
+                const p = JSON.parse(atob(licContent.trim()));
+                p.last_check_forced = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+                const updated = btoa(JSON.stringify(p));
+                tbSaveLic(updated);
+                return updated;
+            } catch(e) {
+                console.warn('[TripaBot] Erro ao atualizar last_check_forced:', e);
+                return licContent;
+            }
+        }
+
+        // Verifica se é necessário forced check-in (30 dias)
+        function tbCheckForcedCheckIn(licContent) {
+            try {
+                const p = JSON.parse(atob(licContent.trim()));
+                if (!p.last_check_forced) return false; // Nunca foi checado → permite
+
+                const now = new Date();
+                const lastCheck = new Date(p.last_check_forced);
+                const daysSinceCheck = (now - lastCheck) / (1000 * 60 * 60 * 24);
+
+                console.log(`[TripaBot] Dias desde último check: ${daysSinceCheck.toFixed(1)}`);
+                return daysSinceCheck > 30;
+            } catch(e) {
+                console.warn('[TripaBot] Erro ao verificar forced check-in:', e);
+                return false;
+            }
+        }
+
         // Processo principal de validação
         async function tbInitLicense() {
             // 1. Tenta ler do cache (localStorage ou sessionStorage)
@@ -4509,7 +4541,13 @@ SINAIS DE ALERTA:
                 return;
             }
 
-            // 2. Valida localmente
+            // 2. Verifica se é necessário forced check-in (30 dias)
+            const needsForcedCheck = tbCheckForcedCheckIn(cached);
+            if (needsForcedCheck) {
+                console.log('[TripaBot] ⚠️ Forced check-in necessário (30 dias)');
+            }
+
+            // 3. Valida localmente
             let result;
             try {
                 result = await tbValidateLicContent(cached);
@@ -4532,9 +4570,36 @@ SINAIS DE ALERTA:
                 return;
             }
 
-            // 3. Se online, valida com servidor (detecta revogações)
+            // 4. FORCED CHECK-IN: Se > 30 dias, FORÇA validação online
+            if (needsForcedCheck) {
+                console.log('[TripaBot] Forçando validação online...');
+                let online = null;
+                try { online = await tbVerifyOnline(cached); } catch(e) { online = null; }
+
+                // Se offline OU falha → BLOQUEIA
+                if (!online || !online.valid) {
+                    console.log('[TripaBot] ❌ Forced check-in falhou: sem internet ou servidor rejeitou');
+                    const msg = !online
+                        ? 'Sua licença foi verificada há 30+ dias.<br><strong>Conecte à internet para continuar usando.</strong>'
+                        : `Erro na validação: ${online.reason || 'servidor indisponível'}`;
+
+                    document.getElementById('tb-app').style.display = 'none';
+                    const screen = document.getElementById('tb-license-screen');
+                    screen.style.display = 'flex';
+                    document.getElementById('tb-lic-msg').innerHTML = msg;
+                    return;
+                }
+
+                // Online OK → Atualiza last_check_forced e continua
+                console.log('[TripaBot] ✅ Forced check-in bem-sucedido');
+                cached = tbUpdateCheckForcedDate(cached);
+            }
+
+            // 5. Se online (optional), valida com servidor (detecta revogações)
             let online = null;
-            try { online = await tbVerifyOnline(cached); } catch(e) { online = null; }
+            if (!needsForcedCheck) {
+                try { online = await tbVerifyOnline(cached); } catch(e) { online = null; }
+            }
 
             // null = offline, permite acesso (offline-first)
             const REASONS_TO_BLOCK = ['revoked', 'license_revoked', 'user_not_found'];
@@ -4544,7 +4609,12 @@ SINAIS DE ALERTA:
                 return;
             }
 
-            // 4. Tudo OK!
+            // 6. Se passou no forced check-in, atualiza a data
+            if (needsForcedCheck && online?.valid) {
+                cached = tbUpdateCheckForcedDate(cached);
+            }
+
+            // 7. Tudo OK!
             tbUnlockApp(result.email, result.expires);
 
             // 5. Avisa se expira em breve (< 15 dias) — toast não bloqueante
@@ -4576,8 +4646,17 @@ SINAIS DE ALERTA:
             }
         }
 
-        // Lê licença salva
+        // Lê licença salva (ou injetada via /app endpoint)
         function tbReadLic() {
+            // 1. Verifica se foi injetada via /app endpoint
+            if (typeof window !== 'undefined' && window.__LIC_CONTENT__) {
+                const injected = window.__LIC_CONTENT__;
+                // Salva também no localStorage para offline
+                try { localStorage.setItem('tb_lic_v1', injected); } catch(e) {}
+                return injected;
+            }
+
+            // 2. Tenta ler do cache local
             try { return localStorage.getItem('tb_lic_v1'); } catch(e) {}
             try { return sessionStorage.getItem('tb_lic_v1'); } catch(e) {}
             return null;

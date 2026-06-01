@@ -141,9 +141,10 @@ small { font-size: 11px; color: #aaa; display: block; margin-top: 8px; text-alig
         <div id="login-msg" class="msg"></div>
         <div id="login-download" class="download-area">
             <h3>✅ Login realizado!</h3>
-            <p style="font-size:13px;color:#666;margin-bottom:12px;">Baixe os arquivos atualizados:</p>
-            <a id="dl-login-lic" class="download-btn" href="#">📥 Baixar tripabot.lic</a>
-            <a class="download-btn secondary" href="/download-html">📥 Baixar TripaBot.html</a>
+            <p style="font-size:13px;color:#666;margin-bottom:12px;">Escolha como usar:</p>
+            <a id="dl-use-now" class="download-btn" href="#" style="background: #27ae60;">🚀 Usar Agora (Online)</a>
+            <a id="dl-login-lic" class="download-btn secondary" href="#">📥 Baixar Licença</a>
+            <a class="download-btn secondary" href="/download-html">📥 Baixar Programa</a>
             <div class="instructions">
                 <strong>Atualizar licença:</strong><br>
                 Substitua o <code>tripabot.lic</code> antigo pelo novo baixado.<br><br>
@@ -248,6 +249,7 @@ async function doLogin() {
         showMsg('login-msg', 'success', `✓ Licença válida até ${expires}`);
 
         document.getElementById('dl-login-lic').href = `/api/download-lic/${data.download_token}`;
+        document.getElementById('dl-use-now').href = `/app?token=${data.download_token}`;
         document.getElementById('login-download').style.display = 'block';
 
         // Mostra versão atual do servidor

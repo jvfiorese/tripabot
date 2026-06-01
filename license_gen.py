@@ -56,13 +56,14 @@ def generate_license(email: str, days: int) -> dict:
 
     # Payload completo
     payload = {
-        'v':       1,
-        'email':   email.lower().strip(),
-        'issued':  issued_at,
-        'expires': expires_at,
-        'plan':    plan,
-        'nonce':   nonce,
-        'sig':     signature,
+        'v':                1,
+        'email':            email.lower().strip(),
+        'issued':           issued_at,
+        'expires':          expires_at,
+        'plan':             plan,
+        'nonce':            nonce,
+        'sig':              signature,
+        'last_check_forced': issued_at,  # Forced check-in: inicialmnte é a emissão
     }
 
     # Serializa e codifica em base64

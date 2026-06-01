@@ -157,6 +157,18 @@ tr:hover td { background:#fafafa; }
             </div>
         </div>
 
+        <!-- DETECÇÃO DE FRAUDE (IP TELEMETRY) -->
+        <div class="section">
+            <div class="section-title">
+                🚨 Detecção de Fraude
+                <span class="badge" id="badge-fraud">0</span>
+                <button class="btn-refresh" onclick="loadFraudReport()">↻ Atualizar</button>
+            </div>
+            <div id="fraud-container">
+                <div class="empty">Carregando...</div>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -213,7 +225,7 @@ function authHeaders() {
 
 async function loadAll() {
     try {
-        await Promise.all([loadUsers(), loadPayments()]);
+        await Promise.all([loadUsers(), loadPayments(), loadFraudReport()]);
         document.getElementById('last-refresh').textContent =
             'Atualizado ' + new Date().toLocaleTimeString('pt-BR');
     } catch(e) {
@@ -426,6 +438,58 @@ async function genLic(userId, days) {
     } finally {
         _busy.delete(key);
     }
+}
+
+async function loadFraudReport() {
+    const res = await fetch('/api/admin/fraud-report', { headers: authHeaders() });
+    const data = await res.json();
+
+    const container = document.getElementById('fraud-container');
+    const badge = document.getElementById('badge-fraud');
+
+    badge.textContent = data.suspicious_count;
+
+    if (!data.suspicious_users || !data.suspicious_users.length) {
+        container.innerHTML = '<div class="empty">✓ Nenhum usuário suspeito detectado</div>';
+        return;
+    }
+
+    const riskColors = {
+        'high': 'background:#ffcdd2;color:#c62828;',
+        'medium': 'background:#fff3cd;color:#856404;',
+        'low': 'background:#e8f5e9;color:#2e7d32;'
+    };
+
+    container.innerHTML = `
+    <table>
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>IPs Únicos</th>
+                <th>Risco</th>
+                <th>IPs Detectados</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+        ${data.suspicious_users.map(u => `
+            <tr>
+                <td><div class="email">${esc(u.email)}</div></td>
+                <td><strong>${u.unique_ips}</strong></td>
+                <td><span style="${riskColors[u.risk_level]};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">${
+                    u.risk_level === 'high' ? '🔴 ALTO' : u.risk_level === 'medium' ? '🟡 MÉDIO' : '🟢 BAIXO'
+                }</span></td>
+                <td><span style="font-size:11px;color:#666;">${u.ips.join(', ')}</span></td>
+                <td style="display:flex;gap:6px;">
+                    <button class="btn-revoke" onclick="revokeUser(${
+                        // Precisa encontrar o user_id pelo email
+                        'null'
+                    })">Investigar</button>
+                </td>
+            </tr>
+        `).join('')}
+        </tbody>
+    </table>`;
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────
