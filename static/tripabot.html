@@ -773,8 +773,11 @@
                 <textarea id="input-exames" placeholder="Cole aqui o texto dos exames. Aceita:&#10;• PDF do HBDF (Ctrl+A no PDF, Ctrl+C, colar aqui) — detectado automaticamente&#10;• Formato curto: 21/05/26: hb: 10,2 / cr: 1,1 / tgo: 45 / tgp: 38 ..." style="height: 300px;"></textarea>
             </div>
             
-            <button class="btn-primary" onclick="processarExames()">Processar</button>
-            
+            <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-primary" onclick="processarExames()">Processar</button>
+                <button onclick="limparExames()" style="padding:12px 18px;background:#f5f5f5;border:1px solid #ddd;border-radius:6px;font-size:14px;cursor:pointer;color:#666;">Limpar</button>
+            </div>
+
             <div id="aviso-exames" class="warning"></div>
             
             <div id="resultado-exames" class="result-area">
@@ -2871,6 +2874,16 @@ REGRAS ADICIONAIS:
             navigator.clipboard.writeText(texto).then(() => {
                 showToast('✓ Copiado!', 'success', 1500);
             });
+        }
+
+        function limparExames() {
+            document.getElementById('input-exames').value = '';
+            document.getElementById('output-exames').value = '';
+            document.getElementById('resultado-exames').classList.remove('show');
+            const aviso = document.getElementById('aviso-exames');
+            aviso.classList.remove('show');
+            aviso.style = '';
+            document.getElementById('input-exames').focus();
         }
 
         function copiarProntuario() {
