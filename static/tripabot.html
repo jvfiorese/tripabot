@@ -1622,10 +1622,10 @@ REGRAS ADICIONAIS:
                 'Fibrinogênio': { patterns: [/fibrinog/i], confidence: 0.95 }
             },
             'Hematologia': {
-                'Hb': { patterns: [/\bhb\b/i, /hemoglobina\b/i], confidence: 0.90 },
-                'Ht': { patterns: [/\bht\b/i, /hemat[oó]crito\b/i], confidence: 0.90 },
-                'Leuco': { patterns: [/\bleuco(?:cito)?/i, /leuc[oó]cito/i, /gl[oó]bulos?\s+brancos/i], confidence: 0.95 },
-                'Plq': { patterns: [/\bplq\b/i, /\bplaqueta/i], confidence: 0.95 }
+                'Hb': { patterns: [/\bhb\b/i, /hemoglobina/i], confidence: 0.90 },
+                'Ht': { patterns: [/\bht\b/i, /hemat[oó]crito/i], confidence: 0.90 },
+                'Leuco': { patterns: [/\bleuco(?:cito)?\b/i, /leuc[oó]citos?\b/i, /gl[oó]bulos?\s+brancos/i], confidence: 0.95 },
+                'Plq': { patterns: [/\bplq\b/i, /\bplaquetas?\b/i], confidence: 0.95 }
             },
             'Inflamação': {
                 'PCR': { patterns: [/\bpcr\b/i, /prote[ií]na\s+c\s+reativa/i, /prot[eí]\s*c\s*reativa/i], confidence: 0.95 },
@@ -2138,7 +2138,7 @@ REGRAS ADICIONAIS:
                 /^TEL:/i,
                 /\(61\)\s*3550/,
                 /^Liberado por/i,
-                /^Valor de Refer[eê]ncia/i,
+                /^Valores?\s+de\s+Refer/i,      // "Valor de Referência" e "Valores de Referência"
                 /^Refer[eê]ncia Bibliogr[aá]fica/i,
                 /^M[eé]todo:/i,
                 /^Material:/i,
@@ -2149,8 +2149,17 @@ REGRAS ADICIONAIS:
                 /CRF\s*[-–]\s*\d+/i,
                 /^Sexo:/i,
                 /Asa Sul.*Bras[íi]lia/i,
-                /^[ÍI]ndice\s*:/i,           // Ignorado por padrão; para reagentes é lido via lookahead antes do skip
-                /^Cl[aá]ssifica[cç][aã]o:/i, // Classificações de hemograma
+                /^[ÍI]ndice\s*:/i,              // lookahead lê antes do skip quando reagente
+                /^Cl[aá]ssifica[cç][aã]o:/i,
+                // Cabeçalhos de seção do hemograma (Sysmex)
+                /^ERITROGRAMA\b/i,
+                /^LEUCOGRAMA\b/i,
+                /^PLAQUETOGRAMA\b/i,
+                /^OBSERVA[CÇ][AÃ]O\b/i,
+                // Razão sinal/cutoff — informação técnica, não é resultado clínico
+                /^Rela[çc][aã]o\s+DO\/CO/i,
+                /^Nota\s+T[eé]cnica/i,
+                /^De\s+acordo\s+com\s+o\s+Protocolo/i,
             ];
 
             // Divide em blocos por "Liberado por" (fim de cada sub-exame)
@@ -2166,29 +2175,56 @@ REGRAS ADICIONAIS:
                 let resultados = [];
                 let data = null;
                 let emBlocoResultados = false;
+                let emHemograma = false;   // modo tabular para hemograma Sysmex
+                let ignorarResto = false;  // após seção de referência, ignora todo o restante
 
                 for (let i = 0; i < linhas.length; i++) {
                     const linha = linhas[i];
                     if (linha === '___FIM___') continue;
-                    if (SKIP.some(p => p.test(linha))) { emBlocoResultados = false; continue; }
 
-                    // Data de Coleta — mantém ano 4 dígitos (padrão tia ju)
+                    // Após "Valor/Valores de Referência": só processa Data de Coleta
+                    if (ignorarResto) {
+                        const mData = linha.match(/^Data de Coleta:\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/i);
+                        if (mData) data = `${mData[1].padStart(2,'0')}/${mData[2].padStart(2,'0')}/${mData[3]}`;
+                        continue;
+                    }
+
+                    if (SKIP.some(p => p.test(linha))) {
+                        emBlocoResultados = false;
+                        if (/^Valores?\s+de\s+Refer/i.test(linha) && resultados.length > 0) ignorarResto = true;
+                        continue;
+                    }
+
+                    // Data de Coleta — mantém ano 4 dígitos
                     const mData = linha.match(/^Data de Coleta:\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/i);
                     if (mData) {
                         data = `${mData[1].padStart(2,'0')}/${mData[2].padStart(2,'0')}/${mData[3]}`;
                         continue;
                     }
 
-                    // "Resultado: VALOR [unidade]"
-                    const mResSimples = linha.match(/^Resultado:\s*(.*)/i);
+                    // Hemograma Sysmex: formato tabular (sem ":", nome + espaços + valor)
+                    if (emHemograma && !linha.includes(':')) {
+                        const mTab = linha.match(/^([A-ZÁÉÍÓÚÀÂÊÔÃÕ][A-ZÁÉÍÓÚa-záéíóúàâêôãõ]+)\s{2,}([\d][0-9,\.]*)/);
+                        if (mTab) {
+                            resultados.push(`${mTab[1]}: ${mTab[2]}`);
+                            // Segundo exame na mesma linha (ex: HEMOGLOBINA ... HCM ...)
+                            const rest = linha.substring(mTab[0].length);
+                            const mTab2 = rest.match(/\s{2,}([A-ZÁÉÍÓÚÀÂÊÔÃÕ][A-ZÁÉÍÓÚa-záéíóúàâêôãõ]+)\s{2,}([\d][0-9,\.]*)/);
+                            if (mTab2) resultados.push(`${mTab2[1]}: ${mTab2[2]}`);
+                        }
+                        continue;
+                    }
+
+                    // "Resultado: VALOR" — também aceita formato com pontinhos: "Resultado......: VALOR"
+                    const mResSimples = linha.match(/^Resultado[.\s]*:\s*(.*)/i);
                     if (mResSimples) {
                         const val = mResSimples[1].trim();
                         const mNum = val.match(/([\d][0-9,\.]*)/);
                         if (mNum && nomeExame) {
                             resultados.push(`${nomeExame}: ${mNum[0]}`);
                         } else if (val && nomeExame && /Negativ|Positiv|Reagente|Amostra|N[aã]o foram/i.test(val)) {
-                            let displayVal = val; // Preserva frase completa
-                            // Se reagente/positivo: lookahead para capturar Índice da próxima linha
+                            let displayVal = val;
+                            // Reagente/Positivo: lookahead para Índice na próxima linha
                             const ehReagente = /^Reagente|^Positiv/i.test(val) && !/N[aã]o\s*Reagente|N[aã]o\s*Positiv/i.test(val);
                             if (ehReagente && i + 1 < linhas.length) {
                                 const mIdx = linhas[i + 1].match(/^[ÍI]ndice:\s*([\d][0-9,\.]*)/i);
@@ -2199,7 +2235,7 @@ REGRAS ADICIONAIS:
                         continue;
                     }
 
-                    // "Resultados:" (bloco com múltiplos sub-resultados na linha seguinte)
+                    // "Resultados:" (bloco multi-resultado)
                     if (/^Resultados?:\s*$/i.test(linha)) {
                         emBlocoResultados = true;
                         continue;
@@ -2214,23 +2250,25 @@ REGRAS ADICIONAIS:
                         if (!/^\d/.test(linha)) emBlocoResultados = false;
                     }
 
-                    // "NOME DO EXAME: VALOR" (hemograma, líquidos, gasometria — valor direto na linha)
+                    // "NOME: VALOR" direto (líquidos, gasometria, sub-exames)
+                    // Exclui linhas de razão DO/CO e similares
                     const mDireto = linha.match(/^([A-ZÁÉÍÓÚÀÂÊÔÃÕ][^:]{1,60}):\s*([\d][0-9,\.]*)/);
-                    if (mDireto && !/^(Pedido|Atendimento|Identidade|Sexo|VHS.*segun)/i.test(linha)) {
+                    if (mDireto && !/^(Pedido|Atendimento|Identidade|Sexo|VHS.*segun|S\/CO|S\/N|Rela[çc][aã]o)/i.test(linha)) {
                         resultados.push(`${mDireto[1].trim()}: ${mDireto[2]}`);
                         continue;
                     }
 
-                    // Linha sem ":" e sem número = possível nome de exame
-                    // IMPORTANTE: só aceita se nenhum resultado foi capturado ainda.
-                    // Sub-cabeçalhos do "Valor de Referência" (ex: "Bilirrubina Total", "Eritrócitos")
-                    // também são linhas sem ":", mas aparecem APÓS os resultados — nunca devem resetá-los.
+                    // Linha sem ":" e sem número inicial = possível nome de exame
                     if (linha.length >= 2 && linha.length <= 100 && !linha.includes(':') && !/^\d/.test(linha)) {
-                        if (resultados.length === 0) {
+                        if (/^Valores?\s+de\s+Refer/i.test(linha) && resultados.length > 0) {
+                            // "Valores de Referência" sem dois-pontos (ex: Anti-HBc)
+                            ignorarResto = true;
+                        } else if (resultados.length === 0) {
                             nomeExame = linha;
                             emBlocoResultados = false;
+                            emHemograma = /hemograma/i.test(linha);
                         }
-                        // se resultados.length > 0: ignora silenciosamente (sub-cabeçalho de referência)
+                        // se resultados.length > 0 e não é referência: sub-cabeçalho de ref → ignora
                     }
                 }
 
