@@ -787,6 +787,19 @@
                 </div>
                 <textarea id="output-exames" readonly style="height: 300px;"></textarea>
             </div>
+
+            <!-- Caixinha de não classificados — igual ao prontuário -->
+            <div id="resultado-nao-class-exames" style="display:none; margin-top:14px; background:#fff8e1; border:1px solid #f9a825; border-radius:8px; padding:14px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+                    <div>
+                        <span style="font-weight:bold; color:#f57f17;">⚠️ Exames não classificados</span>
+                        <span style="font-size:12px; color:#888; margin-left:8px;">— detectados mas não encaixaram em nenhuma categoria. Verifique manualmente.</span>
+                    </div>
+                    <button class="btn-copy" onclick="copiarNaoClassExames()" style="background:#f9a825;color:#fff;font-size:12px;padding:5px 10px;margin:0;">Copiar</button>
+                </div>
+                <textarea id="output-nao-class-exames" readonly style="width:100%;height:100px;padding:8px;border:1px solid #f9a825;border-radius:4px;font-family:monospace;font-size:12px;background:#fffde7;resize:vertical;"></textarea>
+            </div>
+
             <div class="disclaimer">⚠️ ATENÇÃO: Revise todas as informações aqui contidas. O criador deste aplicativo não se responsabiliza por erros que o sistema possa gerar. Recomenda-se sempre revisar os resultados antes de utilizar.</div>
         </div>
         
@@ -1982,6 +1995,7 @@ REGRAS ADICIONAIS:
             };
 
             let out = '';
+            const naoClassificados = []; // itens para a caixinha de aviso
 
             // ── # Sorologias / Rastreios ──────────────────────────
             out += '# Sorologias / Rastreios\n';
@@ -2034,15 +2048,16 @@ REGRAS ADICIONAIS:
                     if (parts.length) segments.push(parts.join(', '));
                 }
 
-                // Exames não classificados nos grupos acima
+                // Exames não classificados nos grupos acima → guardados para caixinha separada
                 const restantes = exams.filter(e =>
                     e.category !== 'Sorologias' && !e.pendente &&
                     e.value !== 'pendente' && !used.has(e.exam) &&
                     e.value && e.value !== '—' && e.exam !== 'Não classificado'
                 );
-                if (restantes.length) {
-                    const rParts = restantes.map(fmtEntry).filter(Boolean);
-                    if (rParts.length) segments.push(rParts.join(', '));
+                for (const e of restantes) {
+                    const f = fmtEntry(e);
+                    if (f) naoClassificados.push(`(${date}): ${f}`);
+                    used.add(e.exam);
                 }
 
                 // Cópia das sorologias ao final da linha dos laboratoriais
@@ -2063,15 +2078,7 @@ REGRAS ADICIONAIS:
                 if (segments.length) out += `- (${date}): ${segments.join(' | ')}\n`;
             }
 
-            // ── Blocos fixos (sempre presentes, mesmo sem dados) ──
-            out += '\n# Imagem\n';
-            out += '\n# Escopias\n';
-            out += '\n# Outros Exames\n';
-            out += '\n# Resultados Anatomopatológicos, Histopatológicos e Imunohistoquímicos\n';
-            out += '\n# Pareceres\n';
-            out += '\n# Pendencias Exames\n';
-
-            return out.trim();
+            return { output: out.trim(), naoClassificados };
         }
 
         // ====== NAVEGAÇÃO ======
@@ -2351,8 +2358,20 @@ REGRAS ADICIONAIS:
         }
 
         function exibirResultadoExames(exams, output, resultado) {
-            output.value = formatExamsOutput(exams);
+            const { output: txt, naoClassificados } = formatExamsOutput(exams);
+            output.value = txt;
             resultado.classList.add('show');
+
+            // Caixinha de não classificados
+            const boxNC = document.getElementById('resultado-nao-class-exames');
+            const outNC = document.getElementById('output-nao-class-exames');
+            if (naoClassificados.length > 0) {
+                outNC.value = naoClassificados.join('\n');
+                boxNC.style.display = 'block';
+            } else {
+                boxNC.style.display = 'none';
+                outNC.value = '';
+            }
         }
 
         // ====== PARSER DE PRONTUÁRIO ======
@@ -2883,7 +2902,14 @@ REGRAS ADICIONAIS:
             const aviso = document.getElementById('aviso-exames');
             aviso.classList.remove('show');
             aviso.style = '';
+            const boxNC = document.getElementById('resultado-nao-class-exames');
+            if (boxNC) { boxNC.style.display = 'none'; document.getElementById('output-nao-class-exames').value = ''; }
             document.getElementById('input-exames').focus();
+        }
+
+        function copiarNaoClassExames() {
+            const txt = document.getElementById('output-nao-class-exames').value;
+            navigator.clipboard.writeText(txt).then(() => showToast('✓ Copiado!', 'success', 1500));
         }
 
         function copiarProntuario() {
