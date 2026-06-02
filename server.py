@@ -8,7 +8,6 @@ Rotas:
   POST /api/register             → Registra novo usuário + gera trial .lic
   POST /api/login                → Login + retorna .lic mais recente
   GET  /api/verify               → Verifica se licença ainda é válida (online check)
-  GET  /api/download-lic/<token> → Baixa arquivo .lic gerado
   POST /api/report-payment       → Usuário reporta que pagou Pix
   POST /api/admin/login          → Login do admin
   GET  /api/admin/users          → Lista usuários (admin)
@@ -93,7 +92,7 @@ if not ADMIN_PASSWORD:
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 
-# P1-D: CORS restrito — permite domínio configurado + file:// (HTML offline)
+# CORS restrito ao domínio configurado (app 100% online)
 _CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
 CORS(app, resources={r"/api/*": {"origins": _CORS_ORIGINS}})
 

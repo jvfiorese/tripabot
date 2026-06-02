@@ -418,13 +418,6 @@ def reject_payment(payment_id):
         conn.close()
 
 
-# ── Admin Tokens ──────────────────────────────────────────────
-
-def get_db():
-    """Compatibilidade com server.py que usa get_db() diretamente."""
-    return _conn()
-
-
 # ── Download Tokens ───────────────────────────────────────────
 
 def save_download_token(token, user_id, lic_content, expires_at):
