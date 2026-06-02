@@ -2090,7 +2090,7 @@ REGRAS ADICIONAIS:
 
         const sectionMap = [
             { padrao: 'Identificação',
-              patterns: [/identifica[cç][aã]o/i, /dados\s+do\s+paciente/i, /dados\s+pessoais/i] },
+              patterns: [/identifica[cç][aã]o/i, /dados\s+do\s+paciente/i, /dados\s+pessoais/i, /\bID\b/] },
             { padrao: 'Nível de Suporte',
               patterns: [/nível\s+de\s+suporte/i, /cuidados.*paliativo/i, /medidas\s+invasiva/i] },
             { padrao: 'Diagnósticos Atuais',
@@ -2106,8 +2106,10 @@ REGRAS ADICIONAIS:
             // Medicação de Uso Contínuo inclui MUC, medicações em uso, medicamentos, medicações
             { padrao: 'Medicação de Uso Contínuo',
               patterns: [/medica[cç][aã]o\s+em\s+uso/i, /\bMUC\b/, /medicamentos?\s+em\s+uso/i, /medica[cç][oõ]es/i, /farmacoterapia/i, /em\s+uso\s+contin/i, /medicamentos?:/i] },
+            { padrao: 'Hábitos de Vida',
+              patterns: [/hábitos?\s+de\s+vida/i, /\bHV\b/, /hábitos?\s+sociais?/i, /tabagismo|etilismo|sedentarismo/i] },
             { padrao: 'Histórico Familiar',
-              patterns: [/histórico\s+familiar/i, /\bhf\b/i, /antecedente.*familiar/i] },
+              patterns: [/histórico\s+familiar/i, /\bhf\b/i, /antecedente.*familiar/i, /\bAF\b/, /antecedentes?\s+familiares/i] },
             { padrao: 'Antibioticoterapia',
               patterns: [/antibi[oó]tico/i, /\bATB\b/, /antimicrobiano/i, /antibioticoterapia/i] },
             { padrao: 'Culturas',
@@ -2166,6 +2168,7 @@ REGRAS ADICIONAIS:
             { key: 'Diagnósticos Atuais',                        obrigatorio: true  },
             { key: 'Critérios de Prognóstico',                   obrigatorio: false },
             { key: 'HPP',                                        obrigatorio: true  },
+            { key: 'Hábitos de Vida',                            obrigatorio: false },
             { key: 'Alergias',                                   obrigatorio: true  },
             { key: 'Medicação de Uso Contínuo',                  obrigatorio: true  },
             { key: 'Histórico Familiar',                         obrigatorio: false },
@@ -2198,11 +2201,32 @@ REGRAS ADICIONAIS:
             return false;
         }
 
+        // Abreviações médicas reconhecidas mesmo sem # ou :
+        const ABBREV_SECTION = {
+            'ID':   'Identificação',
+            'HDA':  'HDA',  'HNA': 'HDA',  'HMA': 'HDA',
+            'HPP':  'HPP',  'APPA': 'HPP',
+            'MUC':  'Medicação de Uso Contínuo',
+            'AF':   'Histórico Familiar',
+            'HF':   'Histórico Familiar',
+            'EF':   'Exame Físico',
+            'ATB':  'Antibioticoterapia',
+            'CD':   'Condutas',
+            'HV':   'Hábitos de Vida',
+            'HL':   'Hábitos de Vida',
+        };
+
         function detectProntuarioSection(line) {
             const s = line.trim();
-            if (!s || s.length < 3) return null;
-            // Cabeçalho: começa com #, termina com :, ou all-caps ≤50 chars (linhas longas são conteúdo)
-            const allCaps = /^[^a-záéíóúàâêôãõüçñ]{4,}$/.test(s) && s.length <= 60;
+            if (!s) return null;
+
+            // 1) Abreviação médica sozinha na linha (com ou sem # : -)
+            const abbrevKey = s.replace(/^#+\s*/, '').replace(/[:\-\s]+$/, '').trim().toUpperCase();
+            if (ABBREV_SECTION[abbrevKey]) return ABBREV_SECTION[abbrevKey];
+
+            if (s.length < 3) return null;
+            // Cabeçalho: começa com #, termina com :, ou all-caps ≥2 chars ≤50 chars
+            const allCaps = /^[^a-záéíóúàâêôãõüçñ]{2,}$/.test(s) && s.length <= 60;
             const isHeader = /^#+/.test(s) || /:\s*$/.test(s) || allCaps;
             if (!isHeader) return null;
 
