@@ -1607,7 +1607,7 @@ REGRAS ADICIONAIS:
                 'RNI': { patterns: [/\brni\b/i, /\binr\b/i, /rni\/inr/i], confidence: 0.95 },
                 'TP': { patterns: [/\btp\b/i, /tempo\s+(?:de\s+)?protrombina/i, /protrombina/i], confidence: 0.85 },
                 'TTPA': { patterns: [/\bttpa\b/i, /\btppa\b/i, /tromboplastina\s+parcial/i, /tempo.*tromboplastina/i], confidence: 0.90 },
-                'Fibrinogênio': { patterns: [/fibrin[oô]g[eê]nio/i, /\bfibrinog/i], confidence: 0.95 }
+                'Fibrinogênio': { patterns: [/fibrinog/i], confidence: 0.95 }
             },
             'Hematologia': {
                 'Hb': { patterns: [/\bhb\b/i, /hemoglobina\b/i], confidence: 0.90 },
@@ -1631,7 +1631,8 @@ REGRAS ADICIONAIS:
                 'Fe':        { patterns: [/\bferro\s+s[eé]rico\b/i, /\bfe\s+s[eé]rico\b/i], confidence: 0.90 },
                 'TIBC':      { patterns: [/\btibc\b/i, /capacidade.*lig.*ferro/i], confidence: 0.90 },
                 'Vit B12':   { patterns: [/\bvit(?:amina)?\s*b\s*12\b/i, /\bcobalamina\b/i], confidence: 0.95 },
-                'Folato':    { patterns: [/\bfolato\b/i, /[áa]cido\s+f[oó]lico/i], confidence: 0.95 },
+                'Folato':    { patterns: [/\bfolato\b/i], confidence: 0.95 },
+                'Ác. Fólico':{ patterns: [/[áa]cido\s+f[oó]lico/i], confidence: 0.95 },
                 'Vit D':     { patterns: [/\bvit(?:amina)?\s*d\b/i, /25-?oh\b/i, /calciferol/i], confidence: 0.90 },
                 'Zn':        { patterns: [/\bzinco\b/i, /\bzn\b/i], confidence: 0.90 }
             },
@@ -1655,7 +1656,7 @@ REGRAS ADICIONAIS:
             'Gastro Específico': {
                 'PCT':          { patterns: [/\bpct\b/i, /procalcitonina/i], confidence: 0.95 },
                 'TSH':          { patterns: [/\btsh\b/i, /horm[oô]nio.*tireoestimul/i], confidence: 0.95 },
-                'T4L':          { patterns: [/\bt4\s*livre\b/i, /\bt4l\b/i], confidence: 0.90 },
+                'T4L':          { patterns: [/\bt4\s*livre\b/i, /\bt4l\b/i, /tiroxina\s+livre/i], confidence: 0.90 },
                 'Ác Úrico':     { patterns: [/[aá]c(?:ido)?\s+[uú]rico/i, /\buricemia\b/i], confidence: 0.95 },
                 'Amônia':       { patterns: [/\bam[oô]nia\b/i, /\bnh3\b/i, /\bnh4\b/i], confidence: 0.95 },
                 'Galectina-3':  { patterns: [/galectina/i], confidence: 0.95 },
@@ -1693,28 +1694,29 @@ REGRAS ADICIONAIS:
         const serologiaDictionary = {
             // Hepatite B
             'HBsAg':     { patterns: [/\bhbsag\b/i, /ant[ií]geno.*superf[ií]cie.*hep/i] },
-            'Anti-HBs':  { patterns: [/anti-?hbs(?!ag)/i] },
-            'Anti-HBc':  { patterns: [/anti-?hbc\b/i, /\banticore\b/i] },
-            'HBeAg':     { patterns: [/\bhbeag\b/i] },
-            'Anti-HBe':  { patterns: [/anti-?hbe\b/i] },
+            'Anti-HBs':  { patterns: [/anti[-\s]?hbs(?!ag)/i] },
+            'Anti-HBc':  { patterns: [/anti[-\s]?hbc\b/i, /\banticore\b/i] },
+            'HBeAg':     { patterns: [/\bhbe\s*ag\b/i, /\bhbeag\b/i] },
+            'Anti-HBe':  { patterns: [/anti[-\s]?hbe\b/i] },
             'HBV DNA':   { patterns: [/hbv.*dna/i, /dna.*hbv/i, /carga\s+viral.*hbv/i] },
             // Hepatite C e outras
-            'Anti-HCV':  { patterns: [/anti-?hcv\b/i, /hepatite\s*c\s*(?:anticorpo|sorolog)/i] },
+            'Anti-HCV':  { patterns: [/anti[-\s]?hcv\b/i, /hepatite\s*c\s*(?:anticorpo|sorolog)/i] },
             'HCV RNA':   { patterns: [/hcv.*rna/i, /rna.*hcv/i, /carga\s+viral.*hcv/i] },
-            'Anti-HAV IgG': { patterns: [/anti-?hav.*igg/i, /hav.*igg/i] },
-            'Anti-HAV IgM': { patterns: [/anti-?hav.*igm/i, /hav.*igm/i] },
+            'Anti-HAV IgG': { patterns: [/anti[-\s]?hav.*igg/i, /hav.*igg/i] },
+            'Anti-HAV IgM': { patterns: [/anti[-\s]?hav.*igm/i, /hav.*igm/i] },
             // HIV
-            'Anti-HIV':  { patterns: [/anti-?hiv\b/i, /\bhiv\b.*(?:anticorpo|sorolog|teste)/i] },
+            'Anti-HIV':  { patterns: [/anti[-\s]?hiv\b/i, /\bhiv\b.*(?:anticorpo|sorolog|teste)/i, /\bhiv\s*[12i]\s*[+e]\s*[2ii]/i] },
             'HIV RNA':   { patterns: [/hiv.*rna/i, /carga\s+viral.*hiv/i] },
-            // Sífilis
+            // Sífilis — TR antes de VDRL para capturar teste rápido
+            'Sífilis (TR)': { patterns: [/s[ií]filis/i, /treponema.*pallidum/i] },
             'VDRL':      { patterns: [/\bvdrl\b/i] },
             'FTA-ABS':   { patterns: [/fta-?abs/i] },
             'TPHA':      { patterns: [/\btpha\b/i] },
             // Autoimunes (gastro)
             'ANA':       { patterns: [/\bana\b/i, /fator\s+antinuclear/i, /anticorpo\s+antinuclear/i] },
             'ANCA':      { patterns: [/\banca\b/i, /anticorpo.*neutr[oó]f/i] },
-            'Anti-LKM':  { patterns: [/anti-?lkm/i] },
-            'Anti-SMA':  { patterns: [/anti-?sma\b/i, /m[uú]sculo\s+liso/i] },
+            'Anti-LKM':  { patterns: [/anti[-\s]?lkm/i] },
+            'Anti-SMA':  { patterns: [/anti[-\s]?sma\b/i, /m[uú]sculo\s+liso/i] },
             'AMA':       { patterns: [/\bama\b/i, /anti-?mitocondrial/i] },
             'Anti-LC1':  { patterns: [/anti-?lc1\b/i] },
             'IgG4':      { patterns: [/\bigg4\b/i] },
@@ -2021,6 +2023,9 @@ REGRAS ADICIONAIS:
                 /CRF\s*[-–]\s*\d+/i,
                 /^Sexo:/i,
                 /Asa Sul.*Bras[íi]lia/i,
+                /^[ÍI]ndice\s*:/i,           // Índice numérico de sorologias (manter só qualitativo)
+                /^Valor\s+de\s+Refer/i,      // Valores de referência redundantes
+                /^Cl[aá]ssifica[cç][aã]o:/i, // Classificações de hemograma, etc.
             ];
 
             // Divide em blocos por "Liberado por" (fim de cada sub-exame)
