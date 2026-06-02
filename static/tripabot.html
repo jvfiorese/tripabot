@@ -774,7 +774,7 @@
             <h2>Processar Exames Laboratoriais</h2>
             
             <div class="input-area">
-                <textarea id="input-exames" placeholder="Cole aqui o texto dos exames (ex: labs 21/05/26: ca: 10,9 / tgp 8 / mg: 2,09 ...)" style="height: 300px;"></textarea>
+                <textarea id="input-exames" placeholder="Cole aqui o texto dos exames. Aceita:&#10;• PDF do HBDF (Ctrl+A no PDF, Ctrl+C, colar aqui) — detectado automaticamente&#10;• Formato curto: 21/05/26: hb: 10,2 / cr: 1,1 / tgo: 45 / tgp: 38 ..." style="height: 300px;"></textarea>
             </div>
             
             <button class="btn-primary" onclick="processarExames()">Processar</button>
@@ -1980,6 +1980,128 @@ REGRAS ADICIONAIS:
             document.querySelector('.container').classList.remove('wide');
         }
 
+        // ====== DETECTOR E PRÉ-PROCESSADOR DE PDF HBDF ======
+
+        function isHBDFPdfFormat(text) {
+            // Detecta formato do PDF do sistema do Hospital de Base (visualizarGeralPorItensPedidoLaboratorio)
+            return (
+                /N[uú]cleo de Laborat[oó]rio Cl[ií]nico.*Hospital de Base/i.test(text) ||
+                (/Data de Coleta:/i.test(text) && /Liberado por/i.test(text) && /Pedido:/i.test(text))
+            );
+        }
+
+        function preprocessHBDFPdf(rawText) {
+            // Linhas de cabeçalho/rodapé para ignorar
+            const SKIP = [
+                /^_{3,}$/,
+                /^Paciente:/i,
+                /^Identidade:/i,
+                /^Data\s+Nascimento:/i,
+                /^Atendimento:/i,
+                /^Pedido:/i,
+                /^Data\s+Pedido:/i,
+                /^M[eé]dico Solicitante:/i,
+                /^Unidade de/i,
+                /Interna[cç][aã]o da coleta/i,
+                /^Respons[aá]vel T[eé]cnico:/i,
+                /^N[uú]cleo de Laborat[oó]rio/i,
+                /Hospital de Base/i,
+                /IGESDF/i,
+                /^TEL:/i,
+                /\(61\)\s*3550/,
+                /^Liberado por/i,
+                /^Valor de Refer[eê]ncia/i,
+                /^Refer[eê]ncia Bibliogr[aá]fica/i,
+                /^M[eé]todo:/i,
+                /^Material:/i,
+                /^ATEN[ÇC][ÃA]O PARA NOVOS/i,
+                /^Exame realizado/i,
+                /^Agentes etiol[oó]gicos/i,
+                /CRBM\s*[-–]\s*\d+/i,
+                /CRF\s*[-–]\s*\d+/i,
+                /^Sexo:/i,
+                /Asa Sul.*Bras[íi]lia/i,
+            ];
+
+            // Divide em blocos por "Liberado por" (fim de cada sub-exame)
+            // Acrescenta um marcador de fim para o último bloco
+            const blocos = (rawText + '\n___FIM___').split(/Liberado por[^\n]*\n/i);
+
+            const output = [];
+
+            for (const bloco of blocos) {
+                const linhas = bloco.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+                let nomeExame = null;
+                let resultados = [];
+                let data = null;
+                let emBlocoResultados = false;
+
+                for (const linha of linhas) {
+                    if (linha === '___FIM___') continue;
+                    if (SKIP.some(p => p.test(linha))) { emBlocoResultados = false; continue; }
+
+                    // Data de Coleta (data real do exame, não Data Pedido)
+                    const mData = linha.match(/^Data de Coleta:\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/i);
+                    if (mData) {
+                        data = `${mData[1].padStart(2,'0')}/${mData[2].padStart(2,'0')}/${mData[3].slice(-2)}`;
+                        continue;
+                    }
+
+                    // "Resultado: VALOR [unidade]"
+                    const mResSimples = linha.match(/^Resultado:\s*(.*)/i);
+                    if (mResSimples) {
+                        const val = mResSimples[1].trim();
+                        const mNum = val.match(/([\d][0-9,\.]*)/);
+                        if (mNum && nomeExame) {
+                            resultados.push(`${nomeExame}: ${mNum[0]}`);
+                        } else if (val && nomeExame && /Negativ|Positiv|Reagente|Amostra|N[aã]o foram/i.test(val)) {
+                            // resultado qualitativo (painel viral, bacterioscopia, etc.)
+                            resultados.push(`${nomeExame}: ${val.split(/\s+/).slice(0,3).join(' ')}`);
+                        }
+                        continue;
+                    }
+
+                    // "Resultados:" (bloco com múltiplos sub-resultados na linha seguinte)
+                    if (/^Resultados?:\s*$/i.test(linha)) {
+                        emBlocoResultados = true;
+                        continue;
+                    }
+
+                    // Sub-resultado em bloco "Resultados:"
+                    if (emBlocoResultados) {
+                        const mSub = linha.match(/^([^:]{2,60}):\s*([\d][0-9,\.]*)/);
+                        if (mSub) { resultados.push(`${mSub[1].trim()}: ${mSub[2]}`); continue; }
+                        const mSubQ = linha.match(/^([^:]{2,60}):\s*([A-ZÁÉÍÓÚÀÂÊÔÃÕ][A-ZÁÉÍÓÚa-záéíóúàâêôãõ\s]{2,40})$/);
+                        if (mSubQ) { resultados.push(`${mSubQ[1].trim()}: ${mSubQ[2].trim()}`); continue; }
+                        if (!/^\d/.test(linha)) emBlocoResultados = false;
+                    }
+
+                    // "NOME DO EXAME: VALOR" (hemograma, líquidos, gasometria — valor direto na linha)
+                    const mDireto = linha.match(/^([A-ZÁÉÍÓÚÀÂÊÔÃÕ][^:]{1,60}):\s*([\d][0-9,\.]*)/);
+                    if (mDireto && !/^(Pedido|Atendimento|Identidade|Sexo|VHS.*segun)/i.test(linha)) {
+                        resultados.push(`${mDireto[1].trim()}: ${mDireto[2]}`);
+                        continue;
+                    }
+
+                    // Linha sem ":" e sem número = nome do exame
+                    if (linha.length >= 2 && linha.length <= 100 && !linha.includes(':') && !/^\d/.test(linha)) {
+                        nomeExame = linha;
+                        resultados = [];
+                        emBlocoResultados = false;
+                    }
+                }
+
+                // Emite resultados do bloco com a data encontrada
+                if (resultados.length > 0) {
+                    if (data) output.push(`${data}:`);
+                    for (const r of resultados) output.push(r);
+                }
+            }
+
+            return output.join('\n');
+        }
+
         // ====== PROCESSAMENTO EXAMES ======
         function processarExames() {
             const input = document.getElementById('input-exames').value.trim();
@@ -2003,9 +2125,30 @@ REGRAS ADICIONAIS:
 
             aviso.classList.remove('show');
 
+            // Detecta formato PDF do HBDF e pré-processa automaticamente
+            let textoParaParser = input;
+            let avisoHBDF = '';
+            if (isHBDFPdfFormat(input)) {
+                textoParaParser = preprocessHBDFPdf(input);
+                avisoHBDF = '📄 Formato PDF do HBDF detectado — extraindo automaticamente.';
+                if (!textoParaParser.trim()) {
+                    aviso.textContent = '⚠️ Não foi possível extrair resultados do PDF. Verifique se o texto foi copiado corretamente.';
+                    aviso.classList.add('show');
+                    return;
+                }
+            }
+
             const parser = new ExamParser();
-            const result = parser.parse(input);
+            const result = parser.parse(textoParaParser);
             const allExams = [...result.auto, ...result.needsReview, ...result.unmatched];
+
+            if (avisoHBDF) {
+                aviso.textContent = avisoHBDF;
+                aviso.classList.add('show');
+                aviso.style.background = '#e8f5e9';
+                aviso.style.borderColor = '#4caf50';
+                aviso.style.color = '#2e7d32';
+            }
 
             if (result.needsReview.length > 0) {
                 mostrarModalRevisao(result.needsReview, result.auto, result.unmatched);
