@@ -1588,7 +1588,7 @@ REGRAS ADICIONAIS:
             'Bioquímica/Renal': {
                 'Gli': { patterns: [/\bgli(?:co|cemia)?\b/i, /\bglicose\b/i], confidence: 0.95 },
                 'Ur': { patterns: [/\bur(?:eia)?\b/i], confidence: 0.95 },
-                'Cr': { patterns: [/\bcr(?:eatinina)?\b/i], confidence: 0.95 },
+                'Cr': { patterns: [/\bcr(?:eatinina)?\b/i, /creatinina\s*s[eé]rica/i], confidence: 0.95 },
                 'Na': { patterns: [/\bna(?:\s*(?:=|:|,|\d))/i, /\bs[oó]dio\b/i], confidence: 0.85 },
                 'K': { patterns: [/\bk(?:\s*(?:=|:|,|\d))/i, /\bpot[aá]ssio\b/i], confidence: 0.80 },
                 'Cl': { patterns: [/\bcl(?:oro|oreto)?\b/i], confidence: 0.80 },
@@ -1705,20 +1705,24 @@ REGRAS ADICIONAIS:
         // ====== DICIONÁRIO DE SOROLOGIAS ======
         const serologiaDictionary = {
             // Hepatite B
-            'HBsAg':     { patterns: [/\bhbsag\b/i, /ant[ií]geno.*superf[ií]cie.*hep/i] },
+            'HBsAg':     { patterns: [/\bhbsag\b/i, /\bagt?\.?\s*hbs\b/i, /\bhbs\s*ag\b/i,
+                                       /ant[ií]geno.*superf[ií]cie.*hep/i, /hepatite.*b.*ant[ií]geno/i] },
             'Anti-HBs':  { patterns: [/anti[-\s]?hbs(?!ag)/i] },
-            'Anti-HBc':  { patterns: [/anti[-\s]?hbc\b/i, /\banticore\b/i] },
+            'Anti-HBc':  { patterns: [/anti[-\s]?hbc\b/i, /\banticore\b/i,
+                                       /anticorpo\s+hbc/i, /hbc\s*total/i, /anti.*\bhbc\b/i] },
             'HBeAg':     { patterns: [/\bhbe\s*ag\b/i, /\bhbeag\b/i] },
             'Anti-HBe':  { patterns: [/anti[-\s]?hbe\b/i] },
             'HBV DNA':   { patterns: [/hbv.*dna/i, /dna.*hbv/i, /carga\s+viral.*hbv/i] },
-            // Hepatite C e outras
-            'Anti-HCV':  { patterns: [/anti[-\s]?hcv\b/i, /hepatite\s*c\s*(?:anticorpo|sorolog)/i] },
+            // Hepatite C — RNA antes de anti-HCV para evitar conflito
             'HCV RNA':   { patterns: [/hcv.*rna/i, /rna.*hcv/i, /carga\s+viral.*hcv/i] },
+            'Anti-HCV':  { patterns: [/anti[-\s]?hcv\b/i, /\bhcv\b/i,
+                                       /hepatite\s*c\s*(?:anticorpo|sorolog|anti|teste\s*r[aá]pido)/i] },
             'Anti-HAV IgG': { patterns: [/anti[-\s]?hav.*igg/i, /hav.*igg/i] },
             'Anti-HAV IgM': { patterns: [/anti[-\s]?hav.*igm/i, /hav.*igm/i] },
-            // HIV
-            'Anti-HIV':  { patterns: [/anti[-\s]?hiv\b/i, /\bhiv\b.*(?:anticorpo|sorolog|teste)/i, /\bhiv\s*[12i]\s*[+e]\s*[2ii]/i] },
+            // HIV — RNA antes de anti-HIV para evitar conflito
             'HIV RNA':   { patterns: [/hiv.*rna/i, /carga\s+viral.*hiv/i] },
+            'Anti-HIV':  { patterns: [/anti[-\s]?hiv\b/i, /\bhiv\s+[12i]/i,
+                                       /\bhiv\b.*(?:anticorpo|sorolog|teste|gera[cç][aã]o)/i] },
             // Sífilis — TR antes de VDRL para capturar teste rápido
             'Sífilis (TR)': { patterns: [/s[ií]filis/i, /treponema.*pallidum/i] },
             'VDRL':      { patterns: [/\bvdrl\b/i] },
@@ -2217,11 +2221,16 @@ REGRAS ADICIONAIS:
                         continue;
                     }
 
-                    // Linha sem ":" e sem número = nome do exame
+                    // Linha sem ":" e sem número = possível nome de exame
+                    // IMPORTANTE: só aceita se nenhum resultado foi capturado ainda.
+                    // Sub-cabeçalhos do "Valor de Referência" (ex: "Bilirrubina Total", "Eritrócitos")
+                    // também são linhas sem ":", mas aparecem APÓS os resultados — nunca devem resetá-los.
                     if (linha.length >= 2 && linha.length <= 100 && !linha.includes(':') && !/^\d/.test(linha)) {
-                        nomeExame = linha;
-                        resultados = [];
-                        emBlocoResultados = false;
+                        if (resultados.length === 0) {
+                            nomeExame = linha;
+                            emBlocoResultados = false;
+                        }
+                        // se resultados.length > 0: ignora silenciosamente (sub-cabeçalho de referência)
                     }
                 }
 
