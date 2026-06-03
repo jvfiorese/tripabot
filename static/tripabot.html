@@ -2148,6 +2148,7 @@ REGRAS ADICIONAIS:
                 /CRBM\s*[-–]\s*\d+/i,
                 /CRF\s*[-–]\s*\d+/i,
                 /^Sexo:/i,
+                /^Nascimento:/i,              // "Nascimento: 14/05/1938" (cabeçalho paciente)
                 /Asa Sul.*Bras[íi]lia/i,
                 /^[ÍI]ndice\s*:/i,              // lookahead lê antes do skip quando reagente
                 /^Cl[aá]ssifica[cç][aã]o:/i,
@@ -2157,7 +2158,9 @@ REGRAS ADICIONAIS:
                 /^PLAQUETOGRAMA\b/i,
                 /^OBSERVA[CÇ][AÃ]O\b/i,
                 // Razão sinal/cutoff — informação técnica, não é resultado clínico
+                /^S\/CO:/i,                   // "S/CO: 0,152" (ratio HBsAg)
                 /^Rela[çc][aã]o\s+DO\/CO/i,
+                /^Rela[çc][aã]o\s+S\/CO/i,
                 /^Nota\s+T[eé]cnica/i,
                 /^De\s+acordo\s+com\s+o\s+Protocolo/i,
             ];
@@ -2253,7 +2256,7 @@ REGRAS ADICIONAIS:
                     // "NOME: VALOR" direto (líquidos, gasometria, sub-exames)
                     // Exclui linhas de razão DO/CO e similares
                     const mDireto = linha.match(/^([A-ZÁÉÍÓÚÀÂÊÔÃÕ][^:]{1,60}):\s*([\d][0-9,\.]*)/);
-                    if (mDireto && !/^(Pedido|Atendimento|Identidade|Sexo|VHS.*segun|S\/CO|S\/N|Rela[çc][aã]o)/i.test(linha)) {
+                    if (mDireto && !/^(Pedido|Atendimento|Identidade|Sexo|VHS.*segun)/i.test(linha)) {
                         resultados.push(`${mDireto[1].trim()}: ${mDireto[2]}`);
                         continue;
                     }
