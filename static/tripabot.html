@@ -1623,8 +1623,17 @@ REGRAS ADICIONAIS:
             },
             'Hematologia': {
                 'Hb': { patterns: [/\bhb\b/i, /hemoglobina/i], confidence: 0.90 },
-                'Ht': { patterns: [/\bht\b/i, /hemat[oó]crito/i, /hematocrito/i], confidence: 0.90 },
-                'Leuco': { patterns: [/\bleuco(?:cito)?\b/i, /leuc[oó]citos?\b/i, /leucocitos?\b/i, /gl[oó]bulos?\s+brancos/i], confidence: 0.95 },
+                'Ht': { patterns: [/\bht\b/i, /hematocrito/i,
+                                   /hemat[oó]crito/i,
+                                   /hematócrito/i,   // ó minúsculo U+00F3
+                                   /hematÓcrito/i],  // Ó maiúsculo U+00D3
+                        confidence: 0.90 },
+                'Leuco': { patterns: [/\bleuco(?:cito)?\b/i, /leucocitos?\b/i,
+                                      /leuc[oó]citos?\b/i,
+                                      /leucócitos?\b/i,  // ó minúsculo
+                                      /leucÓcitos?\b/i,  // Ó maiúsculo
+                                      /gl[oó]bulos?\s+brancos/i],
+                           confidence: 0.95 },
                 'Plq': { patterns: [/\bplq\b/i, /\bplaquetas?\b/i], confidence: 0.95 }
             },
             'Inflamação': {
@@ -2219,12 +2228,13 @@ REGRAS ADICIONAIS:
                             .replace(/HEM[Áá]CIAS?/i,'Hemacias')
                             .replace(/SEGMENTADOS?/i,'Segmentados')
                             .replace(/PLAQUETAS?/i,'Plaquetas');
-                        const mTab = linha.match(/^([A-ZÁÉÍÓÚÀÂÊÔÃÕ][A-ZÁÉÍÓÚa-záéíóúàâêôãõ]+)\s{2,}([\d][0-9,\.]*)/);
+                        // \s+ (1 ou mais espaços) — cobre tanto pypdf (2+) quanto PDF viewer (1 espaço)
+                        const mTab = linha.match(/^([A-ZÁÉÍÓÚÀÂÊÔÃÕ][A-ZÁÉÍÓÚa-záéíóúàâêôãõ]+)\s+([\d][0-9,\.]*)/);
                         if (mTab) {
                             resultados.push(`${_normHemo(mTab[1])}: ${mTab[2]}`);
                             // Segundo exame na mesma linha (ex: HEMOGLOBINA ... HCM ...)
                             const rest = linha.substring(mTab[0].length);
-                            const mTab2 = rest.match(/\s{2,}([A-ZÁÉÍÓÚÀÂÊÔÃÕ][A-ZÁÉÍÓÚa-záéíóúàâêôãõ]+)\s{2,}([\d][0-9,\.]*)/);
+                            const mTab2 = rest.match(/\s{2,}([A-ZÁÉÍÓÚÀÂÊÔÃÕ][A-ZÁÉÍÓÚa-záéíóúàâêôãõ]+)\s+([\d][0-9,\.]*)/);
                             if (mTab2) resultados.push(`${_normHemo(mTab2[1])}: ${mTab2[2]}`);
                         }
                         continue;
