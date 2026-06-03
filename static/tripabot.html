@@ -2194,7 +2194,8 @@ REGRAS ADICIONAIS:
 
                     if (SKIP.some(p => p.test(linha))) {
                         emBlocoResultados = false;
-                        if (/^Valores?\s+de\s+Refer/i.test(linha) && resultados.length > 0) ignorarResto = true;
+                        // No hemograma, "Valores de referência" é seção inline — não deve parar o processamento
+                        if (/^Valores?\s+de\s+Refer/i.test(linha) && resultados.length > 0 && !emHemograma) ignorarResto = true;
                         continue;
                     }
 
@@ -2263,8 +2264,8 @@ REGRAS ADICIONAIS:
 
                     // Linha sem ":" e sem número inicial = possível nome de exame
                     if (linha.length >= 2 && linha.length <= 100 && !linha.includes(':') && !/^\d/.test(linha)) {
-                        if (/^Valores?\s+de\s+Refer/i.test(linha) && resultados.length > 0) {
-                            // "Valores de Referência" sem dois-pontos (ex: Anti-HBc)
+                        if (/^Valores?\s+de\s+Refer/i.test(linha) && resultados.length > 0 && !emHemograma) {
+                            // "Valores de Referência" sem dois-pontos (ex: Anti-HBc) — não no hemograma
                             ignorarResto = true;
                         } else if (resultados.length === 0) {
                             nomeExame = linha;
