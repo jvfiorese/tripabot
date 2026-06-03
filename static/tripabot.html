@@ -1556,7 +1556,13 @@ REGRAS ADICIONAIS:
                                       /leucÓcitos?\b/i,  // Ó maiúsculo
                                       /gl[oó]bulos?\s+brancos/i],
                            confidence: 0.95 },
-                'Plq': { patterns: [/\bplq\b/i, /\bplaquetas?\b/i], confidence: 0.95 }
+                'Plq': { patterns: [/\bplq\b/i, /\bplaquetas?\b/i], confidence: 0.95 },
+                // Diferencial leucocitário (sub-tipos de leucócitos)
+                'Seg': { patterns: [/\bsegment(?:ado)?s?\b/i, /\bsegment\b/i], confidence: 0.95 },
+                'Eos': { patterns: [/\beosin[oó]filos?\b/i, /eosinofilo/i], confidence: 0.95 },
+                'Baso': { patterns: [/\bbas[oó]filos?\b/i, /basofilo/i], confidence: 0.95 },
+                'Linf': { patterns: [/\blinf[oó]citos?\b/i, /linfocito/i], confidence: 0.95 },
+                'Mono': { patterns: [/\bmon[oó]citos?\b/i, /monocito/i], confidence: 0.95 }
             },
             'Inflamação': {
                 'PCR': { patterns: [/\bpcr\b/i, /prote[ií]na\s+c\s+reativa/i, /prot[eí]\s*c\s*reativa/i], confidence: 0.95 },
@@ -1836,6 +1842,7 @@ REGRAS ADICIONAIS:
 
         const DISPLAY_NAMES = {
             'Hb':'HB','Ht':'HT','Plq':'PQT','Leuco':'Leuco',
+            'Seg':'Seg','Eos':'Eos','Baso':'Baso','Linf':'Linf','Mono':'Mono',
             'TGO':'TGO','TGP':'TGP','FA':'FA','GGT':'GGT',
             'BT':'BT','BD':'BD','BI':'BI',
             'RNI':'INR','TP':'TP','TTPA':'TTPA','Fibrinogênio':'FIBRINOGÊNIO',
@@ -1856,7 +1863,7 @@ REGRAS ADICIONAIS:
 
         // Grupos com separador | — ordem padrão tia ju
         const LAB_GROUPS = [
-            ['Hematologia',   ['Hb','Ht','Leuco','Plq']],
+            ['Hematologia',   ['Hb','Ht','Leuco','Seg','Eos','Baso','Linf','Mono','Plq']],
             ['Inflam',        ['PCR','VHS']],
             ['Hep+Coag',      ['TGO','TGP','FA','GGT','BT','BD','BI','RNI','TP','TTPA','Fibrinogênio']],
             ['Proteínas',     ['PT','Alb','Glob']],
