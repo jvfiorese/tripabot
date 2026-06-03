@@ -596,13 +596,6 @@
         }
         #tb-account-panel.open { display: block; }
         .tb-acc-email { font-size: 13px; font-weight: 700; color: #222; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; }
-        .tb-acc-plan { font-size: 11px; color: #888; margin-bottom: 12px; }
-        .tb-acc-expires { font-size: 12px; color: #555; margin-bottom: 6px; }
-        .tb-acc-bar-wrap { background: #eee; border-radius: 4px; height: 6px; margin-bottom: 14px; }
-        .tb-acc-bar { height: 6px; border-radius: 4px; transition: width 0.3s; }
-        .tb-acc-bar.green  { background: #27ae60; }
-        .tb-acc-bar.yellow { background: #f39c12; }
-        .tb-acc-bar.red    { background: #e74c3c; }
         .tb-acc-divider { border: none; border-top: 1px solid #f0f0f0; margin: 10px 0; }
         .tb-acc-link {
             display: block; width: 100%; text-align: left;
@@ -611,14 +604,6 @@
             text-decoration: none;
         }
         .tb-acc-link:hover { color: #e85252; }
-        .tb-acc-renew {
-            display: block; width: 100%; text-align: center;
-            background: #e85252; color: white; border: none;
-            padding: 9px; border-radius: 7px; font-size: 13px;
-            font-weight: 600; cursor: pointer; text-decoration: none;
-            margin-top: 4px;
-        }
-        .tb-acc-renew:hover { background: #c94444; }
         .tb-acc-version { font-size: 10px; color: #ccc; text-align: center; margin-top: 10px; }
         </style>
 </head>
@@ -4926,67 +4911,23 @@ SINAIS DE ALERTA:
 
         // Inicializa menu de conta com dados do usuário
         function tbInitAccountMenu() {
-            const info     = window.__USER_INFO__ || {};
-            const email    = info.email || '';
-            const plan     = info.plan  || 'trial';
-            const expiresAt= info.expires_at || '';
-            const contact  = info.contact_email || '';
-            const version  = info.version || '';
-
-            const planLabel = plan === 'active' ? '✓ Plano Pago' : '⏱ Período de Trial';
-
-            let daysLeft = 0, daysTotal = 30, barPct = 0, barClass = 'green';
-            let expiresFormatted = '', renewText = '';
-
-            if (expiresAt) {
-                const exp = new Date(expiresAt);
-                const now = new Date();
-                daysLeft  = Math.max(0, Math.ceil((exp - now) / 86400000));
-                daysTotal = plan === 'active' ? 365 : 30;
-                barPct    = Math.min(100, Math.round((daysLeft / daysTotal) * 100));
-                barClass  = barPct > 40 ? 'green' : barPct > 15 ? 'yellow' : 'red';
-                expiresFormatted = exp.toLocaleDateString('pt-BR');
-                renewText = plan === 'active'
-                    ? `Renova em ${expiresFormatted}`
-                    : `Trial termina em ${expiresFormatted}`;
-            }
-
-            // Urgência visual
-            const urgencyColor = barClass === 'red' ? '#e74c3c' : barClass === 'yellow' ? '#f39c12' : '#27ae60';
+            const info    = window.__USER_INFO__ || {};
+            const email   = info.email || '';
+            const contact = info.contact_email || '';
+            const version = info.version || '';
 
             // Cria botão fixo
             const btn = document.createElement('button');
             btn.id = 'tb-account-btn';
             btn.title = 'Minha Conta';
             btn.innerHTML = '👤';
-            // Ponto vermelho se < 7 dias
-            if (daysLeft > 0 && daysLeft <= 7) {
-                btn.style.background = '#e74c3c';
-                btn.title = `⚠ ${daysLeft} dias restantes`;
-            }
             document.body.appendChild(btn);
 
-            // Cria painel
+            // Cria painel — sem menção a pagamento, plano, vencimento ou renovação
             const panel = document.createElement('div');
             panel.id = 'tb-account-panel';
             panel.innerHTML = `
               <div class="tb-acc-email" title="${email}">${email}</div>
-              <div class="tb-acc-plan">${planLabel}</div>
-              <hr class="tb-acc-divider">
-
-              <div style="margin-bottom:6px;">
-                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
-                  <span style="font-size:12px;color:#555;">Tempo restante</span>
-                  <span style="font-size:20px;font-weight:800;color:${urgencyColor};">${daysLeft}d</span>
-                </div>
-                <div class="tb-acc-bar-wrap">
-                  <div class="tb-acc-bar ${barClass}" style="width:${barPct}%"></div>
-                </div>
-                <div style="font-size:11px;color:#999;margin-top:4px;">${renewText}</div>
-              </div>
-
-              <hr class="tb-acc-divider">
-              <a class="tb-acc-renew" href="/renovar" target="_blank">🔄 Renovar Assinatura</a>
               <hr class="tb-acc-divider">
               ${contact ? `<a class="tb-acc-link" href="mailto:${contact}">✉ Suporte: ${contact}</a>` : ''}
               <div class="tb-acc-version">TripaBot ${version}</div>
