@@ -93,16 +93,25 @@
         }
         
         .btn-back {
-            margin-bottom: 16px;
-            padding: 8px 12px;
-            background: transparent;
-            border: none;
-            color: #666;
-            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 20px;
+            padding: 10px 18px;
+            background: #f0f0f0;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            color: #444;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
         }
-        
         .btn-back:hover {
-            color: #333;
+            background: #e4e4e4;
+            border-color: #bbb;
+            color: #111;
         }
 
         .disclaimer {
@@ -1210,8 +1219,7 @@ REGRAS ADICIONAIS:
         </div>
 
         <div class="childmeld-buttons">
-            <button class="btn-cm-primary" onclick="cmCalcular()">Calcular</button>
-            <button class="btn-cm-secondary" onclick="cmLimpar()">Limpar</button>
+            <button class="btn-cm-secondary" onclick="cmLimpar()">Limpar campos</button>
         </div>
 
         <!-- RESULTADOS -->
@@ -1730,12 +1738,26 @@ REGRAS ADICIONAIS:
                 // Qualitativo (sorologias)
                 const q = line.match(/\b(n[aã]o\s+reagente|reagente|positiv\w*|negativ\w*|indeterminado)\b/i);
                 if (q) return q[1];
-                // Numérico após : ou =
-                const n = line.match(/(?::|=)\s*([\d][0-9,. ]*)/);
+                // Numérico após : ou = (remove {MIN-MAX} antes de processar)
+                const cleaned = line.replace(/\s*\{[^}]*\}\s*/g, '');
+                const n = cleaned.match(/(?::|=)\s*([\d][0-9,. ]*)/);
                 if (n) return removeUnits(n[1].trim().replace(/\s+/g, ''));
-                // Numérico no final da linha
-                const e = line.match(/\b(\d[\d,.]*)\s*(?:mg|g|%|U|mEq|mmol|mm|\/|x10)?[^\s]*\s*$/i);
+                // Numérico no final da linha (sem o {MIN-MAX})
+                const e = cleaned.match(/\b(\d[\d,.]*)\s*(?:mg|g|%|U|mEq|mmol|mm|\/|x10)?[^\s]*\s*$/i);
                 if (e) return removeUnits(e[1]);
+                return null;
+            }
+
+            extractRange(line) {
+                // Extrai range do formato {MIN-MAX}
+                const m = line.match(/\{([0-9,.\s]*?)-([0-9,.\s]*?)\}/);
+                if (m) {
+                    const min = parseFloat(m[1].trim().replace(',','.'));
+                    const max = parseFloat(m[2].trim().replace(',','.'));
+                    if (!isNaN(min) && !isNaN(max)) {
+                        return {min, max};
+                    }
+                }
                 return null;
             }
 
@@ -1764,18 +1786,21 @@ REGRAS ADICIONAIS:
                 if (sor) return sor;
 
                 const pendente = this.isPendente(trimmed);
+                const range = this.extractRange(trimmed);
 
                 for (const [category, exams] of Object.entries(examDictionary)) {
                     for (const [exam, config] of Object.entries(exams)) {
                         for (const pat of config.patterns) {
                             if (pat.test(trimmed)) {
-                                return {
+                                const result = {
                                     exam, category,
                                     value: pendente ? 'pendente' : (this.extractValue(trimmed) || '—'),
                                     confidence: config.confidence,
                                     pendente,
                                     rawLine: trimmed
                                 };
+                                if (range) result.range = range;
+                                return result;
                             }
                         }
                     }
@@ -1790,7 +1815,9 @@ REGRAS ADICIONAIS:
                 // Fallback: captura o nome real do exame (nunca omite silenciosamente)
                 const nomeExtraido = trimmed.split(/\s*[:=]/)[0].replace(/^[-•*\s]+/, '').trim();
                 const nomeReal = nomeExtraido.length >= 2 ? nomeExtraido : trimmed;
-                return { exam: nomeReal, value: this.extractValue(trimmed) || '—', category: 'Outros Exames', confidence: 0.0, rawLine: trimmed };
+                const result = { exam: nomeReal, value: this.extractValue(trimmed) || '—', category: 'Outros Exames', confidence: 0.0, rawLine: trimmed };
+                if (range) result.range = range;
+                return result;
             }
 
             parse(text) {
@@ -1908,15 +1935,19 @@ REGRAS ADICIONAIS:
             'Vit D':[20,100],'Fe':[50,170],'Ferritina':[12,300],
         };
 
-        function _isAlterado(examKey, valueStr) {
-            const range = REFERENCE_RANGES[examKey];
+        function _isAlterado(examKey, valueStr, dynamicRange) {
+            // Usa range dinâmico se disponível (vem do PDF), senão usa dicionário fixo
+            let range = dynamicRange || REFERENCE_RANGES[examKey];
             if (!range) return false;
             // Remove % se estiver presente (para valores de percentual como "78,40 %")
             const cleaned = (valueStr || '').replace(/\s*%\s*/g, '').replace(',','.');
             const val = parseFloat(cleaned);
             if (isNaN(val)) return false;
-            if (range[0] !== null && val < range[0]) return true;
-            if (range[1] !== null && val > range[1]) return true;
+            // Suporta tanto array [min, max] quanto objeto {min, max}
+            const min = Array.isArray(range) ? range[0] : range.min;
+            const max = Array.isArray(range) ? range[1] : range.max;
+            if (min !== null && val < min) return true;
+            if (max !== null && val > max) return true;
             return false;
         }
 
@@ -1944,7 +1975,7 @@ REGRAS ADICIONAIS:
             // Formata uma entrada de exame: "NOME valor" ou "NOME: texto"
             const fmtEntry = (exam) => {
                 if (!exam.value || exam.value === '—' || exam.value === 'pendente') return null;
-                const alt = _isAlterado(exam.exam, exam.value) ? '***' : '';
+                const alt = _isAlterado(exam.exam, exam.value, exam.range) ? '***' : '';
                 const hasLetters = /[a-záéíóúàâêôãõA-ZÁÉÍÓÚÀÂÊÔÃÕ]/.test(exam.value) || exam.value.includes('(');
                 if (hasLetters) {
                     // Qualitativo — usa nome original para sorologias
@@ -2075,6 +2106,31 @@ REGRAS ADICIONAIS:
         }
 
         function preprocessHBDFPdf(rawText) {
+            // Helper: extrai range de uma linha (ex: "(8,5 - 10,5)" ou "a 5,90" no hemograma)
+            const _extractRange = (line) => {
+                // Padrão 1: (MIN - MAX) ou [MIN - MAX]
+                const m1 = line.match(/[(\[]([0-9,.\s]+?)\s*[-–]\s*([0-9,.\s]+?)[)\]]/);
+                if (m1) {
+                    const min = parseFloat(m1[1].trim().replace(',','.'));
+                    const max = parseFloat(m1[2].trim().replace(',','.'));
+                    if (!isNaN(min) && !isNaN(max)) return {min, max};
+                }
+                // Padrão 2: "a MAX" (hemograma tabular: "4,50    a   5,90")
+                const m2 = line.match(/\ba\s+([0-9,.\s]+?)(?:\s+|$|10\^)/);
+                if (m2) {
+                    const max = parseFloat(m2[1].trim().replace(',','.'));
+                    if (!isNaN(max)) return {min: null, max};
+                }
+                // Padrão 3: "MIN a MAX" (hemograma: "4,50    a   5,90")
+                const m3 = line.match(/([0-9,.\s]+)\s+a\s+([0-9,.\s]+)/);
+                if (m3) {
+                    const min = parseFloat(m3[1].trim().replace(',','.'));
+                    const max = parseFloat(m3[2].trim().replace(',','.'));
+                    if (!isNaN(min) && !isNaN(max)) return {min, max};
+                }
+                return null;
+            };
+
             // Linhas de cabeçalho/rodapé para ignorar
             const SKIP = [
                 /^_{3,}$/,
@@ -2176,17 +2232,23 @@ REGRAS ADICIONAIS:
                             .replace(/SEGMENTADOS?/i,'Segmentados')
                             .replace(/PLAQUETAS?/i,'Plaquetas');
                         // \s+ (1 ou mais espaços) — cobre tanto pypdf (2+) quanto PDF viewer (1 espaço)
-                        // Captura: nome VALOR [%] [unidade]
+                        // Captura: nome VALOR [%] [unidade] [range em parênteses]
                         const mTab = linha.match(/^([A-ZÁÉÍÓÚÀÂÊÔÃÕ][A-ZÁÉÍÓÚa-záéíóúàâêôãõ]+)\s+([\d][0-9,\.]*)\s*(%)?/);
                         if (mTab) {
                             const valor = mTab[3] ? `${mTab[2]} %` : mTab[2];  // Adiciona % se capturou
-                            resultados.push(`${_normHemo(mTab[1])}: ${valor}`);
+                            // Tenta extrair range da mesma linha
+                            const range = _extractRange(linha);
+                            const rangeStr = range ? ` {${range.min}-${range.max}}` : '';
+                            resultados.push(`${_normHemo(mTab[1])}: ${valor}${rangeStr}`);
                             // Segundo exame na mesma linha (ex: HEMOGLOBINA ... HCM ...)
                             const rest = linha.substring(mTab[0].length);
                             const mTab2 = rest.match(/\s{2,}([A-ZÁÉÍÓÚÀÂÊÔÃÕ][A-ZÁÉÍÓÚa-záéíóúàâêôãõ]+)\s+([\d][0-9,\.]*)\s*(%)?/);
                             if (mTab2) {
                                 const valor2 = mTab2[3] ? `${mTab2[2]} %` : mTab2[2];
-                                resultados.push(`${_normHemo(mTab2[1])}: ${valor2}`);
+                                // Extrai range da seção restante (ex: "78,0   a 100,0")
+                                const range2 = _extractRange(rest);
+                                const rangeStr2 = range2 ? ` {${range2.min}-${range2.max}}` : '';
+                                resultados.push(`${_normHemo(mTab2[1])}: ${valor2}${rangeStr2}`);
                             }
                         }
                         continue;
@@ -2198,7 +2260,14 @@ REGRAS ADICIONAIS:
                         const val = mResSimples[1].trim();
                         const mNum = val.match(/([\d][0-9,\.]*)/);
                         if (mNum && nomeExame) {
-                            resultados.push(`${nomeExame}: ${mNum[0]}`);
+                            // Procura range na próxima linha ou na mesma linha
+                            let range = _extractRange(val);
+                            let rangeStr = '';
+                            if (!range && i + 1 < linhas.length) {
+                                range = _extractRange(linhas[i + 1]);
+                            }
+                            if (range) rangeStr = ` {${range.min}-${range.max}}`;
+                            resultados.push(`${nomeExame}: ${mNum[0]}${rangeStr}`);
                         } else if (val && nomeExame && /Negativ|Positiv|Reagente|Amostra|N[aã]o foram/i.test(val)) {
                             let displayVal = val;
                             // Reagente/Positivo: lookahead para Índice na próxima linha
@@ -2231,7 +2300,10 @@ REGRAS ADICIONAIS:
                     // Exclui linhas de razão DO/CO e similares
                     const mDireto = linha.match(/^([A-ZÁÉÍÓÚÀÂÊÔÃÕ][^:]{1,60}):\s*([\d][0-9,\.]*)/);
                     if (mDireto && !/^(Pedido|Atendimento|Identidade|Sexo|VHS.*segun)/i.test(linha)) {
-                        resultados.push(`${mDireto[1].trim()}: ${mDireto[2]}`);
+                        // Procura range na mesma linha
+                        const range = _extractRange(linha);
+                        const rangeStr = range ? ` {${range.min}-${range.max}}` : '';
+                        resultados.push(`${mDireto[1].trim()}: ${mDireto[2]}${rangeStr}`);
                         continue;
                     }
 
