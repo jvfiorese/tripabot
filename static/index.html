@@ -177,7 +177,11 @@ async function doRegister() {
     const password = document.getElementById('reg-password').value;
     const name     = document.getElementById('reg-name').value.trim();
 
+    // B1: Validação de formato de email no cliente
+    const EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
     if (!email || !password) { showMsg('reg-msg', 'error', 'Preencha email e senha.'); return; }
+    if (!EMAIL_RE.test(email)) { showMsg('reg-msg', 'error', 'Email inválido. Verifique e tente novamente.'); return; }
+    if (password.length < 6) { showMsg('reg-msg', 'error', 'Senha deve ter pelo menos 6 caracteres.'); return; }
 
     btn.disabled = true;
     btn.textContent = 'Criando conta...';
@@ -197,7 +201,17 @@ async function doRegister() {
             return;
         }
 
-        // Redireciona direto para o app
+        // C1: Verificação de email — não redireciona mais, exibe mensagem
+        if (data.email_pending) {
+            btn.style.display = 'none';
+            showMsg('reg-msg', 'success',
+                '📧 Conta criada! Verifique seu email para ativar o TripaBot.\n\n' +
+                'Enviamos um link de ativação para ' + email + '.\n' +
+                'O link expira em 24 horas.');
+            return;
+        }
+
+        // Fallback (não deve acontecer com verificação ativa)
         btn.textContent = 'Abrindo TripaBot...';
         window.location.href = `/app?token=${data.download_token}`;
 

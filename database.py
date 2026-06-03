@@ -211,6 +211,9 @@ def init_db():
 
     # ── Migrações de colunas novas (ALTER TABLE seguro) ────────
     _migrate_add_column(conn, 'users', 'ip_whitelist', "TEXT DEFAULT ''")
+    _migrate_add_column(conn, 'users', 'email_verified', "INTEGER DEFAULT 0")
+    _migrate_add_column(conn, 'users', 'email_verify_token', "TEXT")
+    _migrate_add_column(conn, 'users', 'email_verify_expires', "TEXT")
 
     conn.commit()
     conn.close()
@@ -259,6 +262,49 @@ def get_user_by_email(email):
     try:
         cur = _run(conn, "SELECT * FROM users WHERE email = ?", (email.lower().strip(),))
         return _one(cur)
+    finally:
+        conn.close()
+
+
+def set_email_verify_token(user_id: int, token: str, expires: str):
+    """Salva token de verificação de email com prazo de 24h."""
+    conn = _conn()
+    try:
+        _run(conn, """
+            UPDATE users SET email_verify_token=?, email_verify_expires=?, email_verified=0
+            WHERE id=?
+        """, (token, expires, user_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def consume_email_verify_token(token: str):
+    """
+    Valida e consome o token de verificação de email.
+    Se válido: marca email_verified=1, status='pending_trial', limpa token.
+    Retorna o usuário ou None se token inválido/expirado.
+    """
+    from datetime import datetime, timezone
+    now_iso = datetime.now(timezone.utc).isoformat()
+    conn = _conn()
+    try:
+        cur = _run(conn, """
+            SELECT * FROM users WHERE email_verify_token=? AND email_verify_expires > ?
+        """, (token, now_iso))
+        user = _one(cur)
+        if not user:
+            return None
+        # Marca email como verificado e limpa o token
+        _run(conn, """
+            UPDATE users SET email_verified=1, email_verify_token=NULL, email_verify_expires=NULL
+            WHERE id=?
+        """, (user['id'],))
+        conn.commit()
+        return user
+    except Exception:
+        conn.rollback()
+        return None
     finally:
         conn.close()
 

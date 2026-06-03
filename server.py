@@ -44,7 +44,8 @@ from database import (
     create_payment, get_pending_payments, approve_payment, reject_payment,
     save_download_token, get_download_token,
     save_device_session, get_user_ip_history, get_all_ip_history,
-    update_ip_whitelist, get_ip_whitelist
+    update_ip_whitelist, get_ip_whitelist,
+    set_email_verify_token, consume_email_verify_token
 )
 from license_gen import generate_license, verify_license_content
 
@@ -55,7 +56,10 @@ SECRET_KEY      = os.environ.get('TRIPABOT_SECRET_KEY', '')
 ADMIN_PASSWORD  = os.environ.get('ADMIN_PASSWORD', '')
 PIX_KEY         = os.environ.get('PIX_KEY', 'Configure PIX_KEY no .env')
 CONTACT_EMAIL   = os.environ.get('CONTACT_EMAIL', '')
-APP_VERSION     = '1.2.0'  # Online-only mode
+APP_VERSION     = '1.5.0'  # Email verification
+RESEND_API_KEY  = os.environ.get('RESEND_API_KEY', '')
+BASE_URL        = os.environ.get('BASE_URL', 'https://tripabot-production.up.railway.app')
+FROM_EMAIL      = os.environ.get('FROM_EMAIL', 'noreply@tripabot.com.br')
 
 # Tokens de admin — usa funções do database.py (compatível com SQLite e PostgreSQL)
 def _admin_token_valid(token):
@@ -131,6 +135,65 @@ def set_security_headers(response):
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
+
+
+def send_verification_email(email: str, token: str) -> bool:
+    """
+    Envia email de verificação via Resend.
+    Retorna True se enviado com sucesso, False em caso de erro.
+    Se RESEND_API_KEY não estiver configurada, loga o link e retorna True
+    (modo dev — permite testar sem envio real).
+    """
+    link = f"{BASE_URL}/api/verify-email?token={token}"
+
+    if not RESEND_API_KEY:
+        logger.warning(f"[EMAIL] RESEND_API_KEY não configurada — modo dev. Link: {link}")
+        return True  # Em dev, "sucesso" sem envio real
+
+    try:
+        import resend
+        resend.api_key = RESEND_API_KEY
+        params = {
+            "from": FROM_EMAIL,
+            "to": [email],
+            "subject": "Ative sua conta TripaBot 🔬",
+            "html": f"""
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+             background:#f0f4f8;margin:0;padding:40px 20px;">
+  <div style="max-width:480px;margin:0 auto;background:white;border-radius:16px;
+              box-shadow:0 4px 24px rgba(0,0,0,0.10);padding:40px 36px;text-align:center;">
+    <div style="font-size:48px;margin-bottom:16px;">🔬</div>
+    <h1 style="font-size:22px;color:#222;margin-bottom:8px;">Bem-vindo ao TripaBot!</h1>
+    <p style="font-size:14px;color:#666;line-height:1.6;margin-bottom:28px;">
+      Confirme seu email para ativar sua conta trial de <strong>30 dias grátis</strong>.
+    </p>
+    <a href="{link}"
+       style="display:inline-block;background:#1565c0;color:white;padding:14px 32px;
+              text-decoration:none;border-radius:8px;font-size:15px;font-weight:600;">
+      ✅ Ativar Minha Conta
+    </a>
+    <p style="font-size:12px;color:#aaa;margin-top:24px;">
+      Link válido por 24 horas.<br>
+      Se você não criou esta conta, ignore este email.
+    </p>
+    <hr style="border:none;border-top:1px solid #f0f0f0;margin:24px 0;">
+    <p style="font-size:11px;color:#ccc;">
+      TripaBot — Ferramenta de apoio clínico para residentes<br>
+      <a href="{BASE_URL}" style="color:#bbb;">{BASE_URL}</a>
+    </p>
+  </div>
+</body>
+</html>""",
+        }
+        resend.Emails.send(params)
+        logger.info(f"[EMAIL] Verificação enviada para {_mask_email(email)}")
+        return True
+    except Exception as e:
+        logger.error(f"[EMAIL] Erro ao enviar verificação: {e}")
+        return False
 
 
 def check_password(password: str, hashed: str) -> bool:
@@ -300,22 +363,64 @@ def api_register():
     if not user:
         return jsonify({'error': 'Este email já está cadastrado'}), 409
 
-    # Gera licença trial (30 dias)
+    # C1: Verificação de email — gera token de ativação (24h)
+    verify_token = secrets.token_urlsafe(32)
+    expires = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
+    set_email_verify_token(user['id'], verify_token, expires)
+
+    # Envia email de confirmação
+    email_sent = send_verification_email(email, verify_token)
+    if not email_sent:
+        logger.error(f"[REGISTER] Falha ao enviar email para {_mask_email(email)}")
+        # Mesmo com falha no email, conta foi criada — não reverter (pode reenviar depois)
+
+    return jsonify({
+        'success': True,
+        'email_pending': True,
+        'message': 'Conta criada! Verifique seu email para ativar o TripaBot.',
+        'email': email,
+    }), 201
+
+
+@app.route('/api/verify-email')
+def api_verify_email():
+    """
+    C1: Ativa conta após clique no link de verificação de email.
+    Gera licença trial de 30 dias e redireciona para o app.
+    """
+    from flask import redirect
+    token = request.args.get('token', '').strip()
+
+    if not token or len(token) > 128:
+        return Response("""
+            <html><body style="font-family:sans-serif;padding:60px;text-align:center">
+            <h2>⚠️ Link inválido</h2>
+            <p>Este link é inválido ou já foi utilizado.</p>
+            <a href="/">Criar nova conta</a>
+            </body></html>""", mimetype='text/html', status=400)
+
+    user = consume_email_verify_token(token)
+
+    if not user:
+        return Response("""
+            <html><body style="font-family:sans-serif;padding:60px;text-align:center">
+            <h2>⏰ Link expirado</h2>
+            <p>Este link expirou (válido por 24h) ou já foi utilizado.</p>
+            <p>Crie uma nova conta ou entre em contato com o suporte.</p>
+            <a href="/">← Voltar ao início</a>
+            </body></html>""", mimetype='text/html', status=400)
+
+    # Gera licença trial de 30 dias agora que o email foi verificado
+    email = user['email']
     lic = generate_license(email, days=30)
     save_license(user['id'], email, lic['issued_at'], lic['expires_at'], lic['plan'], lic['lic_content'])
     update_user_trial(user['id'], lic['expires_at'])
 
-    # Token de download
+    # Gera token de acesso e redireciona direto para o app
     dl_token = _make_download_token(user['id'], lic['lic_content'])
+    logger.info(f"[VERIFY-EMAIL] ✅ Email verificado: {_mask_email(email)}")
 
-    return jsonify({
-        'success': True,
-        'message': 'Conta criada! Baixe seus arquivos abaixo.',
-        'email':       email,
-        'expires_at':  lic['expires_at'],
-        'plan':        lic['plan'],
-        'download_token': dl_token,
-    }), 201
+    return redirect(f'/app?token={dl_token}')
 
 
 @app.route('/api/login', methods=['POST'])
