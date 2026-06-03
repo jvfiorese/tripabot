@@ -482,12 +482,14 @@
         .cm-score-big { font-size: 48px; font-weight: 800; color: #222; margin: 12px 0; }
         .cm-classification { font-size: 18px; font-weight: 600; color: #ff6b6b; }
         .cm-details { font-size: 13px; color: #888; margin-top: 8px; line-height: 1.5; }
-        .cm-meld-selector { margin: 20px 0; padding: 16px; background: #f5f5f5; border-radius: 8px; }
-        .cm-meld-label { font-size: 13px; font-weight: 600; color: #666; margin-bottom: 12px; }
-        .cm-meld-btns { display: flex; gap: 8px; }
-        .meld-btn { flex: 1; padding: 10px 12px; background: white; border: 2px solid #ddd; border-radius: 6px; font-size: 13px; font-weight: 600; color: #666; cursor: pointer; transition: all 0.2s; font-family: inherit; }
-        .meld-btn:hover { border-color: #4ecdc4; color: #4ecdc4; }
-        .meld-btn.active { background: #4ecdc4; color: white; border-color: #4ecdc4; }
+        .cm-meld-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+        .cm-sex-row { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
+        .cm-sex-row label { display: flex; align-items: center; gap: 5px; padding: 6px 14px; border: 1.5px solid #e0e0e0; border-radius: 20px; cursor: pointer; font-size: 13px; color: #666; transition: all 0.15s; }
+        .cm-sex-row input[type="radio"] { display: none; }
+        .cm-sex-row input[type="radio"]:checked + span { color: #4ecdc4; font-weight: 700; }
+        .cm-sex-row label:has(input:checked) { border-color: #4ecdc4; background: #e8faf9; color: #4ecdc4; font-weight: 600; }
+        .cm-meld-pending { color: #aaa; font-size: 28px; font-weight: 600; margin: 12px 0; }
+        .cm-pending-note { font-size: 12px; color: #bbb; margin-top: 4px; font-style: italic; }
         #cm-copy-section { display: none; }
         #cm-copy-text { border: 1px solid #e0e0e0; background: #fafafa; border-radius: 8px; padding: 12px; font-family: 'Courier New', monospace; font-size: 12px; color: #444; outline: none; resize: vertical; width: 100%; line-height: 1.6; margin-bottom: 12px; }
         .btn-cm-copy { padding: 10px 16px; background: #4ecdc4; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
@@ -1177,8 +1179,15 @@ REGRAS ADICIONAIS:
                 <input type="number" id="cm-creatinina" step="0.1" min="0.5" max="15" placeholder="0.8" oninput="cmCalcular()">
             </div>
             <div class="cm-input-group">
-                <label>Sódio Sérico <span class="ref">(mEq/L)</span></label>
-                <input type="number" id="cm-sodio" step="1" min="120" max="160" placeholder="140" oninput="cmCalcular()" disabled>
+                <label>Sódio Sérico <span class="ref">(mEq/L — para MELD-Na / 3.0)</span></label>
+                <input type="number" id="cm-sodio" step="1" min="120" max="160" placeholder="opcional" oninput="cmCalcular()">
+            </div>
+            <div class="cm-input-group">
+                <label>Sexo <span class="ref">(para MELD 3.0)</span></label>
+                <div class="cm-sex-row">
+                    <label><input type="radio" name="cm-sexo" value="M" checked onchange="cmCalcular()"><span>♂ Masc.</span></label>
+                    <label><input type="radio" name="cm-sexo" value="F" onchange="cmCalcular()"><span>♀ Fem.</span></label>
+                </div>
             </div>
             <div class="cm-input-group">
                 <label>Ascite</label>
@@ -1215,27 +1224,33 @@ REGRAS ADICIONAIS:
                 <div class="cm-details" id="cm-child-details">—</div>
             </div>
 
-            <!-- MELD Selector -->
-            <div class="cm-meld-selector">
-                <div class="cm-meld-label">Selecione a variante MELD:</div>
-                <div class="cm-meld-btns">
-                    <button class="meld-btn active" data-meld="original" onclick="cmSelecionarMeld('original')">MELD Original</button>
-                    <button class="meld-btn" data-meld="3" onclick="cmSelecionarMeld('3')">MELD 3.0</button>
-                    <button class="meld-btn" data-meld="na" onclick="cmSelecionarMeld('na')">MELD-Na</button>
+            <!-- 3 MELD Cards lado a lado -->
+            <div class="cm-meld-grid">
+                <div class="cm-result-card cm-meld-card" style="margin-bottom:0">
+                    <div class="cm-result-title">MELD Original</div>
+                    <div class="cm-score-big" id="cm-meld-orig-score">—</div>
+                    <div class="cm-details" id="cm-meld-orig-details">—</div>
                 </div>
-            </div>
-
-            <!-- MELD Card Dinâmico -->
-            <div class="cm-result-card cm-meld-card">
-                <div class="cm-result-title" id="cm-meld-title">MELD Original</div>
-                <div class="cm-score-big" id="cm-meld-score">—</div>
-                <div class="cm-details" id="cm-meld-details">—</div>
+                <div class="cm-result-card cm-meld-card" style="margin-bottom:0">
+                    <div class="cm-result-title">MELD 3.0</div>
+                    <div id="cm-meld3-score-wrap">
+                        <div class="cm-score-big" id="cm-meld3-score">—</div>
+                    </div>
+                    <div class="cm-details" id="cm-meld3-details">—</div>
+                </div>
+                <div class="cm-result-card cm-meld-card" style="margin-bottom:0">
+                    <div class="cm-result-title">MELD-Na</div>
+                    <div id="cm-meldna-score-wrap">
+                        <div class="cm-score-big" id="cm-meldna-score">—</div>
+                    </div>
+                    <div class="cm-details" id="cm-meldna-details">—</div>
+                </div>
             </div>
         </div>
 
         <!-- Copiar -->
         <div id="cm-copy-section">
-            <textarea id="cm-copy-text" rows="7" readonly></textarea>
+            <textarea id="cm-copy-text" rows="8" readonly></textarea>
             <button class="btn-cm-copy" onclick="cmCopiar()">📋 Copiar Resultado</button>
         </div>
 
@@ -4498,7 +4513,6 @@ SINAIS DE ALERTA:
         // ============ FIM GERADOR DE EVOLUÇÃO ============
 
         // ============ CHILD-PUGH + MELD ============
-        let _cmMeldSelecionado = 'original';
 
         function cmCalcular() {
             const bili  = parseFloat(document.getElementById('cm-bilirrubina').value);
@@ -4508,23 +4522,20 @@ SINAIS DE ALERTA:
             const sodio = parseFloat(document.getElementById('cm-sodio').value);
             const ascite = document.getElementById('cm-ascite').value;
             const encef  = document.getElementById('cm-encefalopatia').value;
+            const sexo   = document.querySelector('input[name="cm-sexo"]:checked')?.value || 'M';
 
             if (isNaN(bili) || isNaN(inr) || isNaN(alb) || isNaN(crat) || ascite === '' || encef === '') {
                 showToast('⚠️ Preencha todos os campos obrigatórios!', 'warning', 3000);
                 return;
             }
 
-            if (_cmMeldSelecionado === 'na' && isNaN(sodio)) {
-                showToast('⚠️ Sódio sérico é obrigatório para MELD-Na!', 'warning', 3000);
-                return;
-            }
-
             const childRes = cmChildPugh(bili, inr, alb, parseFloat(ascite), parseFloat(encef));
             const meldOrig = cmMeldOriginal(bili, inr, crat);
-            const meld3res = cmMeld3(bili, inr, crat);
-            const meldNaRes = cmMeldNa(meldOrig, sodio);
+            const temSodio = !isNaN(sodio);
+            const meld3res = temSodio ? cmMeld3(bili, inr, crat, alb, sodio, sexo) : null;
+            const meldNaRes = temSodio ? cmMeldNa(meldOrig, sodio) : null;
 
-            cmExibir(childRes, meldOrig, meld3res, meldNaRes);
+            cmExibir(childRes, meldOrig, meld3res, meldNaRes, temSodio);
         }
 
         function cmChildPugh(bili, inr, alb, ascite, encef) {
@@ -4547,64 +4558,94 @@ SINAIS DE ALERTA:
         }
 
         function cmMeldOriginal(bili, inr, crat) {
-            const raw = 3.78 * Math.log(bili) + 11.2 * Math.log(inr) + 9.57 * Math.log(crat) - 6.43;
-            return { score: Math.min(Math.max(Math.round(raw), 6), 40), raw };
+            // Kamath et al. 2001 — UNOS pré-2016
+            // Caps: bili ≥1, INR ≥1, crat 1–4 mg/dL
+            const b = Math.max(bili, 1.0);
+            const i = Math.max(inr, 1.0);
+            const c = Math.min(Math.max(crat, 1.0), 4.0);
+            const raw = 3.78 * Math.log(b) + 11.2 * Math.log(i) + 9.57 * Math.log(c) - 6.43;
+            return { score: Math.min(Math.max(Math.round(raw), 6), 40) };
         }
 
-        function cmMeld3(bili, inr, crat) {
-            const raw = 1.10 * Math.log(inr) + 1.13 * Math.log(bili) + 0.78 * Math.log(crat) + 3.3;
-            return { score: Math.min(Math.max(Math.round(raw), 6), 40), raw };
+        function cmMeld3(bili, inr, crat, alb, sodio, sexo) {
+            // Kim WR et al. Hepatology 2021 — padrão OPTN atual
+            // Caps: bili ≥1, INR ≥1, crat 1–3 mg/dL, Na 125–137, alb 1.5–3.5
+            const b = Math.max(bili, 1.0);
+            const i = Math.max(inr, 1.0);
+            const c = Math.min(Math.max(crat, 1.0), 3.0);
+            const na = Math.min(Math.max(sodio, 125), 137);
+            const a = Math.min(Math.max(alb, 1.5), 3.5);
+            const female = (sexo === 'F') ? 1.33 : 0;
+            const raw = female
+                + 4.56 * Math.log(b)
+                + 0.82 * (137 - na)
+                - 0.24 * (137 - na) * Math.log(b)
+                + 9.09 * Math.log(i)
+                + 11.14 * Math.log(c)
+                + 1.85 * (3.5 - a)
+                - 1.83 * (3.5 - a) * Math.log(c)
+                + 6;
+            return { score: Math.min(Math.max(Math.round(raw), 6), 40) };
         }
 
         function cmMeldNa(meldOrig, sodio) {
-            let ajuste = 0;
-            if (!isNaN(sodio) && sodio < 140) ajuste = Math.round(1.59 * (140 - sodio));
-            const score = Math.min(Math.max(meldOrig.score + ajuste, 6), 40);
-            return { score, ajuste };
+            // UNOS 2016 — Kim WR et al. 2008
+            // Na capped 125–137 mEq/L
+            const na = Math.min(Math.max(sodio, 125), 137);
+            const m = meldOrig.score;
+            const raw = m + 1.32 * (137 - na) - (0.033 * m * (137 - na));
+            const score = Math.min(Math.max(Math.round(raw), m), 40); // MELD-Na nunca < MELD Original
+            return { score, ajuste: score - m };
         }
 
-        function cmSelecionarMeld(tipo) {
-            _cmMeldSelecionado = tipo;
-            document.querySelectorAll('.meld-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelector(`[data-meld="${tipo}"]`).classList.add('active');
-            const sodioInput = document.getElementById('cm-sodio');
-            if (tipo === 'na') {
-                sodioInput.disabled = false;
-                sodioInput.focus();
-                if (isNaN(parseFloat(sodioInput.value))) {
-                    showToast('⚠️ Preencha o Sódio para MELD-Na!', 'warning', 2000);
-                    return;
-                }
-            } else {
-                sodioInput.disabled = true;
-            }
-            cmCalcular();
+        function cmMeldRisco(score) {
+            if (score < 10) return 'Mortalidade 90 dias: <2%';
+            if (score < 15) return 'Mortalidade 90 dias: ~6%';
+            if (score < 20) return 'Mortalidade 90 dias: ~20%';
+            if (score < 25) return 'Mortalidade 90 dias: ~30%';
+            if (score < 30) return 'Mortalidade 90 dias: ~50%';
+            return 'Mortalidade 90 dias: >60%';
         }
 
-        function cmExibir(childRes, meldOrig, meld3res, meldNaRes) {
+        function cmExibir(childRes, meldOrig, meld3res, meldNaRes, temSodio) {
             document.getElementById('cm-results').style.display = 'block';
+
+            // Child-Pugh
             document.getElementById('cm-child-score').textContent = childRes.score;
             document.getElementById('cm-child-class').textContent = `Classe ${childRes.classe} — Mortalidade 1 ano: ${childRes.mortalidade}`;
             document.getElementById('cm-child-details').textContent = childRes.detalhe;
 
-            const meldScores = { original: meldOrig.score, '3': meld3res.score, na: meldNaRes.score };
-            const meldTitles = { original: 'MELD Original', '3': 'MELD 3.0', na: 'MELD-Na' };
-            const score = meldScores[_cmMeldSelecionado];
-            document.getElementById('cm-meld-title').textContent = meldTitles[_cmMeldSelecionado];
-            document.getElementById('cm-meld-score').textContent = score;
+            // MELD Original
+            document.getElementById('cm-meld-orig-score').textContent = meldOrig.score;
+            document.getElementById('cm-meld-orig-details').textContent = cmMeldRisco(meldOrig.score);
 
-            let det = '';
-            if (_cmMeldSelecionado === 'original') {
-                det = score < 15 ? 'Baixo risco (<15 — transplante geralmente não indicado)' :
-                      score < 25 ? 'Risco moderado — avaliar transplante' : 'Alto risco — prioridade para transplante';
-            } else if (_cmMeldSelecionado === '3') {
-                det = 'Versão 2021 — melhora precisão para pacientes do sexo feminino';
+            // MELD 3.0
+            if (temSodio) {
+                document.getElementById('cm-meld3-score').textContent = meld3res.score;
+                document.getElementById('cm-meld3-score').className = 'cm-score-big';
+                document.getElementById('cm-meld3-details').textContent = cmMeldRisco(meld3res.score) + ' • Padrão OPTN atual';
             } else {
-                det = meldNaRes.ajuste > 0 ? `MELD Original + ${meldNaRes.ajuste} pts por hiponatremia` : 'Sem ajuste (sódio ≥ 140 mEq/L)';
+                document.getElementById('cm-meld3-score').textContent = '—';
+                document.getElementById('cm-meld3-score').className = 'cm-meld-pending';
+                document.getElementById('cm-meld3-details').textContent = '⚠ Informe o Sódio para calcular';
             }
-            document.getElementById('cm-meld-details').textContent = det;
 
-            const txt = `CLASSIFICAÇÃO HEPÁTICA\n${'═'.repeat(40)}\n\nChild-Pugh: Classe ${childRes.classe} (Score: ${childRes.score})\nMortalidade 1 ano: ${childRes.mortalidade} — ${childRes.detalhe}\n\nMELD Original: ${meldOrig.score}\nMELD 3.0: ${meld3res.score}\nMELD-Na: ${meldNaRes.score}${meldNaRes.ajuste > 0 ? ` (+${meldNaRes.ajuste} por hiponatremia)` : ''}`;
+            // MELD-Na
+            if (temSodio) {
+                document.getElementById('cm-meldna-score').textContent = meldNaRes.score;
+                document.getElementById('cm-meldna-score').className = 'cm-score-big';
+                const ajTxt = meldNaRes.ajuste > 0 ? `+${meldNaRes.ajuste} pts por hiponatremia` : 'Sem ajuste (Na ≥ 137)';
+                document.getElementById('cm-meldna-details').textContent = cmMeldRisco(meldNaRes.score) + ` • ${ajTxt}`;
+            } else {
+                document.getElementById('cm-meldna-score').textContent = '—';
+                document.getElementById('cm-meldna-score').className = 'cm-meld-pending';
+                document.getElementById('cm-meldna-details').textContent = '⚠ Informe o Sódio para calcular';
+            }
+
+            // Copy
+            const meld3txt = temSodio ? meld3res.score : '— (sem sódio)';
+            const meldNaTxt = temSodio ? `${meldNaRes.score}${meldNaRes.ajuste > 0 ? ` (+${meldNaRes.ajuste})` : ''}` : '— (sem sódio)';
+            const txt = `CLASSIFICAÇÃO HEPÁTICA\n${'═'.repeat(40)}\nChild-Pugh: Classe ${childRes.classe} (Score: ${childRes.score}) — ${childRes.mortalidade} mortalidade 1 ano\n\nMELD Original: ${meldOrig.score}\nMELD 3.0: ${meld3txt}\nMELD-Na: ${meldNaTxt}\n\n${cmMeldRisco(meldOrig.score)}`;
             document.getElementById('cm-copy-text').value = txt;
             document.getElementById('cm-copy-section').style.display = 'block';
         }
@@ -4621,12 +4662,9 @@ SINAIS DE ALERTA:
             });
             document.getElementById('cm-ascite').value = '';
             document.getElementById('cm-encefalopatia').value = '';
-            document.getElementById('cm-sodio').disabled = true;
+            document.querySelector('input[name="cm-sexo"][value="M"]').checked = true;
             document.getElementById('cm-results').style.display = 'none';
             document.getElementById('cm-copy-section').style.display = 'none';
-            _cmMeldSelecionado = 'original';
-            document.querySelectorAll('.meld-btn').forEach(b => b.classList.remove('active'));
-            document.querySelector('[data-meld="original"]').classList.add('active');
         }
         // ============ FIM CHILD-PUGH + MELD ============
 
