@@ -443,114 +443,54 @@
             .menu-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
-        /* ── GASOMETRIA MODULE CSS ───────────────────── */
-        .gas-inputs-grid {
+        /* ── CHILD-PUGH + MELD MODULE CSS ───────────────────── */
+        .childmeld-inputs-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 12px;
             margin-bottom: 14px;
         }
-        .gas-input-group { display: flex; flex-direction: column; gap: 5px; }
-        .gas-input-group label { font-size: 12px; font-weight: 600; color: #444; }
-        .gas-input-group .gas-ref { font-size: 10px; color: #bbb; font-weight: normal; }
-        .gas-input-group input {
+        .cm-input-group { display: flex; flex-direction: column; gap: 5px; }
+        .cm-input-group label { font-size: 12px; font-weight: 600; color: #444; }
+        .cm-input-group .ref { font-size: 10px; color: #bbb; font-weight: normal; }
+        .cm-input-group input, .cm-input-group select {
             padding: 10px 12px;
             border: 1.5px solid #e0e0e0;
             border-radius: 7px;
             font-size: 16px;
-            font-family: 'Courier New', monospace;
             color: #1a1a2e;
             outline: none;
             transition: border-color 0.15s;
-            -moz-appearance: textfield;
+            -moz-appearance: none;
             background: #fafafa;
             width: 100%;
         }
-        .gas-input-group input:focus { border-color: #2196F3; background: white; }
-        .gas-timing-row { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
-        .gas-timing-row input[type="radio"] { display: none; }
-        .gas-timing-row label {
-            padding: 7px 16px;
-            border: 1.5px solid #e0e0e0;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 13px;
-            color: #666;
-            transition: all 0.15s;
-        }
-        .gas-timing-row input[type="radio"]:checked + label {
-            border-color: #1565c0;
-            background: #e3f2fd;
-            color: #1565c0;
-            font-weight: 600;
-        }
-        .gas-btn-analyze {
-            width: 100%;
-            padding: 13px;
-            background: #1565c0;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-bottom: 8px;
-            font-family: inherit;
-            transition: background 0.15s;
-        }
-        .gas-btn-analyze:hover { background: #0d47a1; }
-        .gas-btn-clear {
-            width: 100%;
-            padding: 8px;
-            background: transparent;
-            color: #bbb;
-            border: 1px solid #ebebeb;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            font-family: inherit;
-        }
-        #gas-result-card { display: none; }
-        .gas-divider { height: 1px; background: #f0f0f0; margin: 20px 0; }
-        .gas-ph-banner {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 16px 20px;
-            border-radius: 10px;
-            margin-bottom: 14px;
-            background: #f5f5f5;
-            border: 2px solid #e0e0e0;
-        }
-        .gas-ph-banner.acidemia { background: #fff3f3; border-color: #ef9a9a; }
-        .gas-ph-banner.alcalemia { background: #e3f2fd; border-color: #90caf9; }
-        .gas-ph-banner.normal { background: #e8f5e9; border-color: #a5d6a7; }
-        .gas-ph-num { font-size: 36px; font-weight: 800; font-family: 'Courier New', monospace; color: #1a1a2e; }
-        .gas-ph-status { font-size: 15px; font-weight: 700; color: #333; }
-        .gas-ph-params { font-size: 12px; color: #777; margin-top: 3px; }
-        .gas-finding {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 12px 14px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            background: #f8f9fa;
-            border: 1px solid #e8e8e8;
-            white-space: pre-line;
-        }
-        .gas-fi { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-        .gas-ft { display: flex; flex-direction: column; gap: 3px; font-size: 13px; line-height: 1.5; }
-        .gas-ft strong { font-size: 14px; color: #1a1a2e; }
-        .gas-f-comp-ok { border-color: #a5d6a7; background: #e8f5e9; }
-        .gas-f-comp-warn { border-color: #ffe082; background: #fff8e1; }
-        .gas-f-comp-bad { border-color: #ef9a9a; background: #ffebee; }
-        .gas-f-ag-high { border-color: #ef9a9a; background: #fff3f3; }
-        .gas-copy-box { background: #f8f9fa; border: 1px solid #e8e8e8; border-radius: 8px; padding: 14px; margin-top: 14px; }
-        .gas-copy-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .gas-copy-header span { font-size: 11px; font-weight: 700; color: #bbb; text-transform: uppercase; letter-spacing: 1px; }
-        #gas-copy-text { border: none; background: transparent; font-family: 'Courier New', monospace; font-size: 12px; color: #444; outline: none; resize: none; width: 100%; line-height: 1.6; }
-        .gas-refs { margin-top: 20px; font-size: 10px; color: #ccc; border-top: 1px solid #f0f0f0; padding-top: 10px; }
+        .cm-input-group input:focus, .cm-input-group select:focus { border-color: #4ecdc4; background: white; }
+        .cm-input-group input:disabled, .cm-input-group select:disabled { background: #f0f0f0; color: #aaa; cursor: not-allowed; }
+        .cm-input-group.full-width { grid-column: 1 / -1; }
+        .childmeld-buttons { display: flex; gap: 8px; margin-bottom: 20px; }
+        .childmeld-buttons button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+        .childmeld-buttons .btn-cm-primary { background: #4ecdc4; color: white; }
+        .childmeld-buttons .btn-cm-primary:hover { background: #3ab9b0; }
+        .childmeld-buttons .btn-cm-secondary { background: #f0f0f0; color: #666; border: 1px solid #e0e0e0; }
+        .childmeld-buttons .btn-cm-secondary:hover { background: #e8e8e8; }
+        #cm-results { display: none; }
+        .cm-result-card { background: white; border-radius: 12px; padding: 20px; border-left: 4px solid; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 16px; }
+        .cm-child-card { border-left-color: #ff6b6b; }
+        .cm-meld-card { border-left-color: #4ecdc4; }
+        .cm-result-title { font-size: 13px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+        .cm-score-big { font-size: 48px; font-weight: 800; color: #222; margin: 12px 0; }
+        .cm-classification { font-size: 18px; font-weight: 600; color: #ff6b6b; }
+        .cm-details { font-size: 13px; color: #888; margin-top: 8px; line-height: 1.5; }
+        .cm-meld-selector { margin: 20px 0; padding: 16px; background: #f5f5f5; border-radius: 8px; }
+        .cm-meld-label { font-size: 13px; font-weight: 600; color: #666; margin-bottom: 12px; }
+        .cm-meld-btns { display: flex; gap: 8px; }
+        .meld-btn { flex: 1; padding: 10px 12px; background: white; border: 2px solid #ddd; border-radius: 6px; font-size: 13px; font-weight: 600; color: #666; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+        .meld-btn:hover { border-color: #4ecdc4; color: #4ecdc4; }
+        .meld-btn.active { background: #4ecdc4; color: white; border-color: #4ecdc4; }
+        #cm-copy-section { display: none; }
+        #cm-copy-text { border: 1px solid #e0e0e0; background: #fafafa; border-radius: 8px; padding: 12px; font-family: 'Courier New', monospace; font-size: 12px; color: #444; outline: none; resize: vertical; width: 100%; line-height: 1.6; margin-bottom: 12px; }
+        .btn-cm-copy { padding: 10px 16px; background: #4ecdc4; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
     
         /* ── TELA DE LICENÇA TRIPABOT ─────────────────────── */
         #tb-license-screen {
@@ -745,10 +685,10 @@
                     <span class="card-title">Evolução Médica</span>
                     <span class="card-desc">Gera evolução clínica com sinais vitais, BH e condutas</span>
                 </button>
-                <button id="btn-gasometria" class="menu-card" onclick="mostrarModulo('modulo-gasometria'); return false;">
-                    <span class="card-emoji">🫁</span>
-                    <span class="card-title">Gasometria</span>
-                    <span class="card-desc">Análise ácido-base com compensações, AG e Delta-Delta</span>
+                <button id="btn-childmeld" class="menu-card" onclick="mostrarModulo('modulo-childmeld'); return false;">
+                    <span class="card-emoji">🔬</span>
+                    <span class="card-title">Child-Pugh + MELD</span>
+                    <span class="card-desc">Classificação hepática — Child-Pugh + 3 variantes MELD</span>
                 </button>
                 <button id="btn-receitas" class="menu-card" onclick="mostrarModulo('modulo-receitas'); return false;">
                     <span class="card-emoji">💊</span>
@@ -1212,109 +1152,91 @@ REGRAS ADICIONAIS:
     </div>
 
     <!-- MÓDULO GASOMETRIA -->
-    <div id="modulo-gasometria" class="module">
+    <!-- MÓDULO CHILD-PUGH + MELD -->
+    <div id="modulo-childmeld" class="module">
         <button class="btn-back" onclick="voltarMenu()">← Voltar</button>
-        <h2>🫁 Analisador de Gasometria</h2>
-        <p class="description">Análise ácido-base sistematizada — compensações, Anion Gap e Delta-Delta.</p>
+        <h2>🔬 Child-Pugh + MELD</h2>
+        <p class="description">Calculadora de classificação hepática — Child-Pugh score + 3 variantes MELD</p>
 
-        <p class="section-label" style="margin-top:16px;">Parâmetros gasométricos</p>
-        <div class="gas-inputs-grid">
-            <div class="gas-input-group">
-                <label>pH <span class="gas-ref">(ref: 7,35–7,45)</span></label>
-                <input type="number" id="gas-pH" step="0.01" min="6.5" max="8.0" placeholder="7.40">
+        <p class="section-label" style="margin-top: 16px;">Dados do paciente</p>
+        <div class="childmeld-inputs-grid">
+            <div class="cm-input-group">
+                <label>Bilirrubina Total <span class="ref">(mg/dL)</span></label>
+                <input type="number" id="cm-bilirrubina" step="0.1" min="0" max="20" placeholder="1.0" oninput="cmCalcular()">
             </div>
-            <div class="gas-input-group">
-                <label>pCO₂ <span class="gas-ref">mmHg (35–45)</span></label>
-                <input type="number" id="gas-pCO2" step="0.1" placeholder="40">
+            <div class="cm-input-group">
+                <label>INR <span class="ref">(RNI)</span></label>
+                <input type="number" id="cm-inr" step="0.1" min="0.5" max="10" placeholder="1.0" oninput="cmCalcular()">
             </div>
-            <div class="gas-input-group">
-                <label>HCO₃⁻ <span class="gas-ref">mEq/L (22–26)</span></label>
-                <input type="number" id="gas-HCO3" step="0.1" placeholder="24">
+            <div class="cm-input-group">
+                <label>Albumina <span class="ref">(g/dL)</span></label>
+                <input type="number" id="cm-albumina" step="0.1" min="1" max="5.5" placeholder="4.0" oninput="cmCalcular()">
             </div>
-            <div class="gas-input-group">
-                <label>Na⁺ <span class="gas-ref">mEq/L — para AG</span></label>
-                <input type="number" id="gas-Na" step="1" placeholder="140">
+            <div class="cm-input-group">
+                <label>Creatinina <span class="ref">(mg/dL)</span></label>
+                <input type="number" id="cm-creatinina" step="0.1" min="0.5" max="15" placeholder="0.8" oninput="cmCalcular()">
             </div>
-            <div class="gas-input-group">
-                <label>Cl⁻ <span class="gas-ref">mEq/L — para AG</span></label>
-                <input type="number" id="gas-Cl" step="1" placeholder="102">
+            <div class="cm-input-group">
+                <label>Sódio Sérico <span class="ref">(mEq/L)</span></label>
+                <input type="number" id="cm-sodio" step="1" min="120" max="160" placeholder="140" oninput="cmCalcular()" disabled>
             </div>
-            <div class="gas-input-group">
-                <label>Albumina <span class="gas-ref">g/dL (normal: 4,0)</span></label>
-                <input type="number" id="gas-albumin" step="0.1" placeholder="4.0">
+            <div class="cm-input-group">
+                <label>Ascite</label>
+                <select id="cm-ascite" oninput="cmCalcular()">
+                    <option value="">—</option>
+                    <option value="0">Ausente</option>
+                    <option value="1">Controlada</option>
+                    <option value="2">Refratária</option>
+                </select>
+            </div>
+            <div class="cm-input-group full-width">
+                <label>Encefalopatia Hepática</label>
+                <select id="cm-encefalopatia" oninput="cmCalcular()">
+                    <option value="">—</option>
+                    <option value="0">Ausente</option>
+                    <option value="1">Grau I–II</option>
+                    <option value="2">Grau III–IV</option>
+                </select>
             </div>
         </div>
 
-        <p class="section-label">Distúrbio respiratório (se presente)</p>
-        <div class="gas-timing-row">
-            <input type="radio" name="gas-timing" id="gas-r-agudo" value="aguda" checked>
-            <label for="gas-r-agudo">⚡ Agudo</label>
-            <input type="radio" name="gas-timing" id="gas-r-cronico" value="cronica">
-            <label for="gas-r-cronico">🕐 Crônico</label>
+        <div class="childmeld-buttons">
+            <button class="btn-cm-primary" onclick="cmCalcular()">Calcular</button>
+            <button class="btn-cm-secondary" onclick="cmLimpar()">Limpar</button>
         </div>
 
-        <button class="gas-btn-analyze" onclick="gasAnalisar()">Analisar Gasometria</button>
-        <button class="gas-btn-clear" onclick="gasLimpar()">Limpar campos</button>
+        <!-- RESULTADOS -->
+        <div id="cm-results">
+            <!-- Child-Pugh Card -->
+            <div class="cm-result-card cm-child-card">
+                <div class="cm-result-title">Child-Pugh</div>
+                <div class="cm-score-big" id="cm-child-score">—</div>
+                <div class="cm-classification" id="cm-child-class">—</div>
+                <div class="cm-details" id="cm-child-details">—</div>
+            </div>
 
-        <!-- RESULTADO -->
-        <div id="gas-result-card">
-            <div class="gas-divider"></div>
-            <p class="section-label">Resultado da Análise</p>
-
-            <div id="gas-ph-banner" class="gas-ph-banner">
-                <div class="gas-ph-num" id="gas-res-ph"></div>
-                <div>
-                    <div class="gas-ph-status" id="gas-res-ph-status"></div>
-                    <div class="gas-ph-params" id="gas-res-ph-params"></div>
+            <!-- MELD Selector -->
+            <div class="cm-meld-selector">
+                <div class="cm-meld-label">Selecione a variante MELD:</div>
+                <div class="cm-meld-btns">
+                    <button class="meld-btn active" data-meld="original" onclick="cmSelecionarMeld('original')">MELD Original</button>
+                    <button class="meld-btn" data-meld="3" onclick="cmSelecionarMeld('3')">MELD 3.0</button>
+                    <button class="meld-btn" data-meld="na" onclick="cmSelecionarMeld('na')">MELD-Na</button>
                 </div>
             </div>
 
-            <div class="gas-finding f-primary">
-                <div class="gas-fi">📌</div>
-                <div class="gas-ft">
-                    <strong id="gas-res-disturbio">—</strong>
-                    <span id="gas-res-disturbio-det"></span>
-                </div>
+            <!-- MELD Card Dinâmico -->
+            <div class="cm-result-card cm-meld-card">
+                <div class="cm-result-title" id="cm-meld-title">MELD Original</div>
+                <div class="cm-score-big" id="cm-meld-score">—</div>
+                <div class="cm-details" id="cm-meld-details">—</div>
             </div>
+        </div>
 
-            <div id="gas-f-comp" class="gas-finding gas-f-comp-ok">
-                <div class="gas-fi" id="gas-comp-icon">✅</div>
-                <div class="gas-ft">
-                    <strong>Compensação</strong>
-                    <span id="gas-res-comp"></span>
-                </div>
-            </div>
-
-            <div id="gas-f-ag" class="gas-finding">
-                <div class="gas-fi">📊</div>
-                <div class="gas-ft">
-                    <strong id="gas-res-ag-title">Anion Gap</strong>
-                    <span id="gas-res-ag-det"></span>
-                </div>
-            </div>
-
-            <div id="gas-f-delta" class="gas-finding" style="display:none; border-color:#ce93d8; background:#f3e5f5;">
-                <div class="gas-fi">🔄</div>
-                <div class="gas-ft">
-                    <strong>Delta-Delta (Δ AG / Δ HCO₃⁻)</strong>
-                    <span id="gas-res-delta"></span>
-                </div>
-            </div>
-
-            <div class="gas-copy-box">
-                <div class="gas-copy-header">
-                    <span>Texto para prontuário</span>
-                    <button class="btn-copy" onclick="gasCopiar()">Copiar</button>
-                </div>
-                <textarea id="gas-copy-text" rows="6" readonly></textarea>
-            </div>
-
-            <div class="gas-refs">
-                <strong>Refs:</strong>
-                Kaufman DA. <em>Interpretation of ABGs.</em> American Thoracic Society, thoracic.org (2022) ·
-                Chen JH et al. HealthRex/CDSS, Stanford ·
-                Adaptado de @erikneves/abg-analysis
-            </div>
+        <!-- Copiar -->
+        <div id="cm-copy-section">
+            <textarea id="cm-copy-text" rows="7" readonly></textarea>
+            <button class="btn-cm-copy" onclick="cmCopiar()">📋 Copiar Resultado</button>
         </div>
 
         <div class="disclaimer">⚠️ Ferramenta de apoio clínico — sempre interprete no contexto do paciente.</div>
@@ -4560,152 +4482,138 @@ SINAIS DE ALERTA:
         }
         // ============ FIM GERADOR DE EVOLUÇÃO ============
 
-        // ============ ANALISADOR DE GASOMETRIA ============
-        function gasAnalisar() {
-            const pH     = parseFloat(document.getElementById('gas-pH').value);
-            const pCO2   = parseFloat(document.getElementById('gas-pCO2').value);
-            const HCO3   = parseFloat(document.getElementById('gas-HCO3').value);
-            const Na     = parseFloat(document.getElementById('gas-Na').value);
-            const Cl     = parseFloat(document.getElementById('gas-Cl').value);
-            const albumin = parseFloat(document.getElementById('gas-albumin').value);
-            const timing = document.querySelector('input[name="gas-timing"]:checked').value;
+        // ============ CHILD-PUGH + MELD ============
+        let _cmMeldSelecionado = 'original';
 
-            if (isNaN(pH) || isNaN(pCO2) || isNaN(HCO3)) {
-                showToast('⚠️ Preencha pelo menos pH, pCO2 e HCO3!', 'warning', 3000);
+        function cmCalcular() {
+            const bili  = parseFloat(document.getElementById('cm-bilirrubina').value);
+            const inr   = parseFloat(document.getElementById('cm-inr').value);
+            const alb   = parseFloat(document.getElementById('cm-albumina').value);
+            const crat  = parseFloat(document.getElementById('cm-creatinina').value);
+            const sodio = parseFloat(document.getElementById('cm-sodio').value);
+            const ascite = document.getElementById('cm-ascite').value;
+            const encef  = document.getElementById('cm-encefalopatia').value;
+
+            if (isNaN(bili) || isNaN(inr) || isNaN(alb) || isNaN(crat) || ascite === '' || encef === '') {
+                showToast('⚠️ Preencha todos os campos obrigatórios!', 'warning', 3000);
                 return;
             }
-            const alb = isNaN(albumin) ? 4.0 : albumin;
-            const res = gasCalcular(pH, pCO2, HCO3, Na, Cl, alb, timing);
-            gasExibir(res, pH, pCO2, HCO3, Na, Cl, alb);
+
+            if (_cmMeldSelecionado === 'na' && isNaN(sodio)) {
+                showToast('⚠️ Sódio sérico é obrigatório para MELD-Na!', 'warning', 3000);
+                return;
+            }
+
+            const childRes = cmChildPugh(bili, inr, alb, parseFloat(ascite), parseFloat(encef));
+            const meldOrig = cmMeldOriginal(bili, inr, crat);
+            const meld3res = cmMeld3(bili, inr, crat);
+            const meldNaRes = cmMeldNa(meldOrig, sodio);
+
+            cmExibir(childRes, meldOrig, meld3res, meldNaRes);
         }
 
-        function gasCalcular(pH, pCO2, HCO3, Na, Cl, albumin, timing) {
-            const r = {};
-            if      (pH < 7.35) r.phStatus = 'acidemia';
-            else if (pH > 7.45) r.phStatus = 'alcalemia';
-            else                r.phStatus = 'normal';
+        function cmChildPugh(bili, inr, alb, ascite, encef) {
+            let score = 0;
+            if      (bili < 2.0) score += 1;
+            else if (bili <= 3.0) score += 2;
+            else                  score += 3;
+            if      (inr < 1.7)  score += 1;
+            else if (inr <= 2.3) score += 2;
+            else                 score += 3;
+            if      (alb > 3.5)  score += 1;
+            else if (alb >= 2.8) score += 2;
+            else                 score += 3;
+            score += ascite + encef;
+            let classe, mortalidade, detalhe;
+            if      (score <= 6)  { classe = 'A'; mortalidade = '~10%'; detalhe = 'Doença hepática compensada'; }
+            else if (score <= 9)  { classe = 'B'; mortalidade = '~30%'; detalhe = 'Doença hepática descompensada (risco moderado)'; }
+            else                  { classe = 'C'; mortalidade = '~50%'; detalhe = 'Cirrose avançada (risco alto)'; }
+            return { score, classe, mortalidade, detalhe };
+        }
 
-            const temEletrolitos = !isNaN(Na) && !isNaN(Cl);
-            if (temEletrolitos) {
-                r.ag     = Na - (Cl + HCO3);
-                r.agCorr = r.ag + 2.5 * (4.0 - albumin);
-                r.agElev = r.agCorr > 12;
-            }
-            const respAcid = pCO2 > 45, respAlk = pCO2 < 35;
-            const metAcid  = HCO3 < 22, metAlk  = HCO3 > 26;
+        function cmMeldOriginal(bili, inr, crat) {
+            const raw = 3.78 * Math.log(bili) + 11.2 * Math.log(inr) + 9.57 * Math.log(crat) - 6.43;
+            return { score: Math.min(Math.max(Math.round(raw), 6), 40), raw };
+        }
 
-            if (r.phStatus === 'acidemia') {
-                if (respAcid && !metAcid) {
-                    r.disturbio = 'Acidose Respiratória';
-                    const expHCO3 = timing === 'aguda' ? 24+(pCO2-40)*0.1 : 24+(pCO2-40)*0.35;
-                    r.expHCO3 = expHCO3;
-                    const diff = HCO3 - expHCO3;
-                    if (Math.abs(diff)<=3) { r.compStatus='ok'; r.comp=`Compensação metabólica adequada (${timing})\nHCO₃⁻ esperado: ${expHCO3.toFixed(1)} mEq/L · obtido: ${HCO3}`; }
-                    else if (diff<-3)      { r.compStatus='bad'; r.comp=`Compensação insuficiente\n→ Distúrbio misto: acidose metabólica adicional\nHCO₃⁻ esperado: ${expHCO3.toFixed(1)} · obtido: ${HCO3} (abaixo)`; }
-                    else                   { r.compStatus='warn'; r.comp=`Compensação além do esperado\n→ Distúrbio misto: alcalose metabólica adicional\nHCO₃⁻ esperado: ${expHCO3.toFixed(1)} · obtido: ${HCO3} (acima)`; }
-                } else if (metAcid && !respAcid) {
-                    r.disturbio = 'Acidose Metabólica';
-                    const expPCO2 = 1.5*HCO3+8; r.expPCO2 = expPCO2;
-                    const diff = pCO2 - expPCO2;
-                    if (Math.abs(diff)<=2) { r.compStatus='ok'; r.comp=`Compensação respiratória adequada — Fórmula de Winter\npCO₂ esperado: ${expPCO2.toFixed(1)} mmHg · obtido: ${pCO2}`; }
-                    else if (diff>2)       { r.compStatus='bad'; r.comp=`Compensação insuficiente\n→ Distúrbio misto: acidose respiratória adicional\npCO₂ esperado: ${expPCO2.toFixed(1)} · obtido: ${pCO2} (acima)`; }
-                    else                   { r.compStatus='warn'; r.comp=`Compensação além do esperado\n→ Distúrbio misto: alcalose respiratória adicional\npCO₂ esperado: ${expPCO2.toFixed(1)} · obtido: ${pCO2} (abaixo)`; }
-                    if (temEletrolitos && r.agElev) {
-                        const dAG=r.agCorr-12, dHCO3=24-HCO3;
-                        if (dHCO3>0) {
-                            r.delta=(dAG/dHCO3).toFixed(2);
-                            const v=parseFloat(r.delta);
-                            r.deltaInterp = v<1 ? 'Distúrbio misto: AGMA + Acidose Metabólica sem AG' : v<=2 ? 'AGMA pura — sem distúrbio metabólico adicional' : 'Distúrbio misto: AGMA + Alcalose Metabólica';
-                        }
-                    }
-                } else if (respAcid && metAcid) {
-                    r.disturbio='Distúrbio Misto: Acidose Respiratória + Acidose Metabólica'; r.compStatus='bad'; r.comp='Dois distúrbios primários acidêmicos independentes — grave';
-                } else { r.disturbio='Acidemia — verifique os valores inseridos'; r.compStatus='warn'; r.comp='—'; }
-            } else if (r.phStatus === 'alcalemia') {
-                if (respAlk && !metAlk) {
-                    r.disturbio = 'Alcalose Respiratória';
-                    const expHCO3 = timing==='aguda' ? 24-(40-pCO2)*0.2 : 24-(40-pCO2)*0.5;
-                    r.expHCO3 = expHCO3;
-                    const diff = HCO3 - expHCO3;
-                    if (Math.abs(diff)<=2) { r.compStatus='ok'; r.comp=`Compensação metabólica adequada (${timing})\nHCO₃⁻ esperado: ${expHCO3.toFixed(1)} mEq/L · obtido: ${HCO3}`; }
-                    else if (diff>2)       { r.compStatus='warn'; r.comp=`Compensação insuficiente\n→ Distúrbio misto: alcalose metabólica adicional\nHCO₃⁻ esperado: ${expHCO3.toFixed(1)} · obtido: ${HCO3} (acima)`; }
-                    else                   { r.compStatus='bad'; r.comp=`Compensação além do esperado\n→ Distúrbio misto: acidose metabólica adicional\nHCO₃⁻ esperado: ${expHCO3.toFixed(1)} · obtido: ${HCO3} (abaixo)`; }
-                } else if (metAlk && !respAlk) {
-                    r.disturbio = 'Alcalose Metabólica';
-                    const expPCO2 = 0.7*HCO3+21; r.expPCO2 = expPCO2;
-                    const diff = pCO2 - expPCO2;
-                    if (Math.abs(diff)<=2) { r.compStatus='ok'; r.comp=`Compensação respiratória adequada\npCO₂ esperado: ${expPCO2.toFixed(1)} mmHg · obtido: ${pCO2}`; }
-                    else if (diff<-2)      { r.compStatus='warn'; r.comp=`Compensação além do esperado\n→ Distúrbio misto: alcalose respiratória adicional\npCO₂ esperado: ${expPCO2.toFixed(1)} · obtido: ${pCO2} (abaixo)`; }
-                    else                   { r.compStatus='bad'; r.comp=`Compensação insuficiente\n→ Distúrbio misto: acidose respiratória adicional\npCO₂ esperado: ${expPCO2.toFixed(1)} · obtido: ${pCO2} (acima)`; }
-                } else if (respAlk && metAlk) {
-                    r.disturbio='Distúrbio Misto: Alcalose Respiratória + Alcalose Metabólica'; r.compStatus='bad'; r.comp='Dois distúrbios primários alcalêmicos independentes — grave';
-                } else { r.disturbio='Alcalemia — verifique os valores inseridos'; r.compStatus='warn'; r.comp='—'; }
+        function cmMeld3(bili, inr, crat) {
+            const raw = 1.10 * Math.log(inr) + 1.13 * Math.log(bili) + 0.78 * Math.log(crat) + 3.3;
+            return { score: Math.min(Math.max(Math.round(raw), 6), 40), raw };
+        }
+
+        function cmMeldNa(meldOrig, sodio) {
+            let ajuste = 0;
+            if (!isNaN(sodio) && sodio < 140) ajuste = Math.round(1.59 * (140 - sodio));
+            const score = Math.min(Math.max(meldOrig.score + ajuste, 6), 40);
+            return { score, ajuste };
+        }
+
+        function cmSelecionarMeld(tipo) {
+            _cmMeldSelecionado = tipo;
+            document.querySelectorAll('.meld-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-meld="${tipo}"]`).classList.add('active');
+            const sodioInput = document.getElementById('cm-sodio');
+            if (tipo === 'na') {
+                sodioInput.disabled = false;
+                sodioInput.focus();
+                if (isNaN(parseFloat(sodioInput.value))) {
+                    showToast('⚠️ Preencha o Sódio para MELD-Na!', 'warning', 2000);
+                    return;
+                }
             } else {
-                if (!respAcid&&!respAlk&&!metAcid&&!metAlk) { r.disturbio='Gasometria Normal'; r.compStatus='ok'; r.comp='Todos os parâmetros dentro da faixa de referência'; }
-                else if (respAcid&&metAlk) { r.disturbio='Distúrbio Misto: Acidose Respiratória + Alcalose Metabólica (pH normal)'; r.compStatus='warn'; r.comp='pH normalizado pela combinação de distúrbios opostos'; }
-                else if (respAlk&&metAcid) { r.disturbio='Distúrbio Misto: Alcalose Respiratória + Acidose Metabólica (pH normal)'; r.compStatus='warn'; r.comp='pH normalizado pela combinação de distúrbios opostos'; }
-                else { r.disturbio='Padrão indeterminado — verifique os valores'; r.compStatus='warn'; r.comp='—'; }
+                sodioInput.disabled = true;
             }
-            return r;
+            cmCalcular();
         }
 
-        function gasExibir(res, pH, pCO2, HCO3, Na, Cl, albumin) {
-            document.getElementById('gas-result-card').style.display = 'block';
-            const banner = document.getElementById('gas-ph-banner');
-            banner.className = 'gas-ph-banner ' + res.phStatus;
-            document.getElementById('gas-res-ph').textContent = pH.toFixed(2);
-            const statusLabel = { acidemia:'🔴 ACIDEMIA', alcalemia:'🔵 ALCALEMIA', normal:'🟢 pH Normal' };
-            document.getElementById('gas-res-ph-status').textContent = statusLabel[res.phStatus];
-            document.getElementById('gas-res-ph-params').textContent = `pCO₂: ${pCO2} mmHg  ·  HCO₃⁻: ${HCO3} mEq/L  ·  Albumina: ${albumin.toFixed(1)} g/dL`;
-            document.getElementById('gas-res-disturbio').textContent = res.disturbio;
-            const det = [];
-            if (res.expPCO2) det.push(`pCO₂ esperado (Winter): ${res.expPCO2.toFixed(1)} mmHg`);
-            if (res.expHCO3) det.push(`HCO₃⁻ esperado: ${res.expHCO3.toFixed(1)} mEq/L`);
-            document.getElementById('gas-res-disturbio-det').textContent = det.join('  ·  ');
-            const fComp = document.getElementById('gas-f-comp');
-            const icons = { ok:'✅', warn:'⚠️', bad:'❌' };
-            const classes = { ok:'gas-f-comp-ok', warn:'gas-f-comp-warn', bad:'gas-f-comp-bad' };
-            document.getElementById('gas-comp-icon').textContent = icons[res.compStatus];
-            fComp.className = 'gas-finding ' + classes[res.compStatus];
-            document.getElementById('gas-res-comp').textContent = res.comp || '—';
-            const fAG = document.getElementById('gas-f-ag');
-            if (!isNaN(Na) && !isNaN(Cl)) {
-                fAG.className = 'gas-finding ' + (res.agElev ? 'gas-f-ag-high' : '');
-                document.getElementById('gas-res-ag-title').textContent = `AG: ${res.ag.toFixed(1)} mEq/L  ·  Corrigido (albumina): ${res.agCorr.toFixed(1)} mEq/L`;
-                document.getElementById('gas-res-ag-det').textContent = res.agElev ? '⬆️ ELEVADO (normal ≤ 12)  →  Causas: lactato, cetoacidose, uremia, intoxicação (MULAK)' : 'Normal (≤ 12 mEq/L)  →  Acidose hiperclorêmica / perda de bicarbonato';
+        function cmExibir(childRes, meldOrig, meld3res, meldNaRes) {
+            document.getElementById('cm-results').style.display = 'block';
+            document.getElementById('cm-child-score').textContent = childRes.score;
+            document.getElementById('cm-child-class').textContent = `Classe ${childRes.classe} — Mortalidade 1 ano: ${childRes.mortalidade}`;
+            document.getElementById('cm-child-details').textContent = childRes.detalhe;
+
+            const meldScores = { original: meldOrig.score, '3': meld3res.score, na: meldNaRes.score };
+            const meldTitles = { original: 'MELD Original', '3': 'MELD 3.0', na: 'MELD-Na' };
+            const score = meldScores[_cmMeldSelecionado];
+            document.getElementById('cm-meld-title').textContent = meldTitles[_cmMeldSelecionado];
+            document.getElementById('cm-meld-score').textContent = score;
+
+            let det = '';
+            if (_cmMeldSelecionado === 'original') {
+                det = score < 15 ? 'Baixo risco (<15 — transplante geralmente não indicado)' :
+                      score < 25 ? 'Risco moderado — avaliar transplante' : 'Alto risco — prioridade para transplante';
+            } else if (_cmMeldSelecionado === '3') {
+                det = 'Versão 2021 — melhora precisão para pacientes do sexo feminino';
             } else {
-                document.getElementById('gas-res-ag-title').textContent = 'Anion Gap';
-                document.getElementById('gas-res-ag-det').textContent = 'Informe Na⁺ e Cl⁻ para calcular';
+                det = meldNaRes.ajuste > 0 ? `MELD Original + ${meldNaRes.ajuste} pts por hiponatremia` : 'Sem ajuste (sódio ≥ 140 mEq/L)';
             }
-            const fDelta = document.getElementById('gas-f-delta');
-            if (res.delta) {
-                fDelta.style.display = 'flex';
-                document.getElementById('gas-res-delta').textContent = `Razão: ${res.delta}  →  ${res.deltaInterp}`;
-            } else { fDelta.style.display = 'none'; }
-            const agTxt = (!isNaN(Na)&&!isNaN(Cl)) ? `AG: ${res.ag.toFixed(1)} mEq/L (corrigido: ${res.agCorr.toFixed(1)}) — ${res.agElev?'ELEVADO':'normal'}` : 'AG: não calculado (sem Na/Cl)';
-            const deltaTxt = res.delta ? `\nDelta-Delta: ${res.delta} → ${res.deltaInterp.split('\n')[0]}` : '';
-            const txt = `GASOMETRIA ARTERIAL\n${'━'.repeat(35)}\npH: ${pH} | pCO₂: ${pCO2} mmHg | HCO₃⁻: ${HCO3} mEq/L${!isNaN(Na)?` | Na: ${Na} | Cl: ${Cl}`:''} | Alb: ${albumin.toFixed(1)} g/dL\n\nDistúrbio: ${res.disturbio}\nCompensação: ${(res.comp||'').split('\n')[0]}\n${agTxt}${deltaTxt}`;
-            const ta = document.getElementById('gas-copy-text');
-            ta.value = txt; ta.rows = txt.split('\n').length + 1;
-            document.getElementById('gas-result-card').scrollIntoView({ behavior:'smooth', block:'nearest' });
+            document.getElementById('cm-meld-details').textContent = det;
+
+            const txt = `CLASSIFICAÇÃO HEPÁTICA\n${'═'.repeat(40)}\n\nChild-Pugh: Classe ${childRes.classe} (Score: ${childRes.score})\nMortalidade 1 ano: ${childRes.mortalidade} — ${childRes.detalhe}\n\nMELD Original: ${meldOrig.score}\nMELD 3.0: ${meld3res.score}\nMELD-Na: ${meldNaRes.score}${meldNaRes.ajuste > 0 ? ` (+${meldNaRes.ajuste} por hiponatremia)` : ''}`;
+            document.getElementById('cm-copy-text').value = txt;
+            document.getElementById('cm-copy-section').style.display = 'block';
         }
 
-        function gasCopiar() {
-            navigator.clipboard.writeText(document.getElementById('gas-copy-text').value).then(() => {
-                const btn = document.querySelector('#modulo-gasometria .btn-copy');
-                btn.textContent = '✓ Copiado!'; btn.style.background = '#e8f5e9';
-                setTimeout(() => { btn.textContent = 'Copiar'; btn.style.background = 'white'; }, 2000);
+        function cmCopiar() {
+            navigator.clipboard.writeText(document.getElementById('cm-copy-text').value).then(() => {
+                showToast('✓ Resultado copiado!', 'success', 1500);
             });
         }
 
-        function gasLimpar() {
-            ['gas-pH','gas-pCO2','gas-HCO3','gas-Na','gas-Cl','gas-albumin'].forEach(id => {
-                const el = document.getElementById(id); if (el) el.value = '';
+        function cmLimpar() {
+            ['cm-bilirrubina','cm-inr','cm-albumina','cm-creatinina','cm-sodio'].forEach(id => {
+                document.getElementById(id).value = '';
             });
-            document.getElementById('gas-result-card').style.display = 'none';
-            document.getElementById('gas-r-agudo').checked = true;
+            document.getElementById('cm-ascite').value = '';
+            document.getElementById('cm-encefalopatia').value = '';
+            document.getElementById('cm-sodio').disabled = true;
+            document.getElementById('cm-results').style.display = 'none';
+            document.getElementById('cm-copy-section').style.display = 'none';
+            _cmMeldSelecionado = 'original';
+            document.querySelectorAll('.meld-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('[data-meld="original"]').classList.add('active');
         }
-        // ============ FIM ANALISADOR DE GASOMETRIA ============
+        // ============ FIM CHILD-PUGH + MELD ============
 
         function copiarModelo() {
             const conteudo = document.getElementById('conteudo-modelo').value;
