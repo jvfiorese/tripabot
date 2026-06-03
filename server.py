@@ -71,8 +71,11 @@ def _admin_token_valid(token):
 def _admin_token_save(token):
     from database import _run, _conn, USE_PG
     expires = (datetime.now(timezone.utc) + timedelta(hours=8)).isoformat()
+    now_iso = datetime.now(timezone.utc).isoformat()
     conn = _conn()
     try:
+        # A3: Limpa tokens expirados antes de salvar o novo
+        _run(conn, "DELETE FROM admin_tokens WHERE expires_at < ?", (now_iso,))
         if USE_PG:
             _run(conn, """INSERT INTO admin_tokens (token, expires_at) VALUES (?, ?)
                           ON CONFLICT (token) DO UPDATE SET expires_at=EXCLUDED.expires_at""",
@@ -81,6 +84,19 @@ def _admin_token_save(token):
             _run(conn, "INSERT OR REPLACE INTO admin_tokens (token, expires_at) VALUES (?, ?)",
                  (token, expires))
         conn.commit()
+    finally:
+        conn.close()
+
+def _cleanup_old_login_attempts():
+    """M4: Remove tentativas de login com mais de 24h — evita crescimento ilimitado da tabela."""
+    from database import _run, _conn
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+    conn = _conn()
+    try:
+        _run(conn, "DELETE FROM login_attempts WHERE created_at < ?", (cutoff,))
+        conn.commit()
+    except Exception:
+        pass
     finally:
         conn.close()
 
@@ -114,7 +130,7 @@ def set_security_headers(response):
 # ─── Helpers ─────────────────────────────────────────────────
 
 def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
 
 
 def check_password(password: str, hashed: str) -> bool:
@@ -258,6 +274,11 @@ def app_online():
 @app.route('/api/register', methods=['POST'])
 def api_register():
     """Registra novo usuário e gera trial de 30 dias."""
+    # C2: Rate limiting — previne criação em massa de contas falsas
+    ip = _get_client_ip()
+    if _rate_limit_check(ip):
+        return jsonify({'error': 'Muitas tentativas. Aguarde alguns minutos antes de criar uma nova conta.'}), 429
+
     data = request.get_json(silent=True) or {}
     email    = (data.get('email') or '').strip().lower()
     password = (data.get('password') or '').strip()
@@ -367,6 +388,12 @@ def api_verify():
         logger.warning(f"[VERIFY] Inválido ({result.get('reason')}): {_mask_email(email)}")
         return jsonify(result)
 
+    # Bug 3: Garante que o email do request bate com o email DENTRO da licença assinada
+    # (impede usar licença de A com email de B para injetar telemetria incorreta)
+    if result.get('email') != email:
+        logger.warning(f"[VERIFY] Email mismatch: req={_mask_email(email)} lic={_mask_email(result.get('email','?'))}")
+        return jsonify({'valid': False, 'reason': 'email_mismatch'})
+
     # Verifica se usuário foi revogado no banco
     user = get_user_by_email(email)
     if not user:
@@ -426,8 +453,15 @@ def _rate_limit_check(ip: str) -> bool:
     from database import _run, _one, _conn
     now = datetime.now(timezone.utc)
     window_start = (now - timedelta(minutes=5)).isoformat()
+    cutoff_24h = (now - timedelta(hours=24)).isoformat()
     conn = _conn()
     try:
+        # M4: Limpa registros antigos (>24h) para evitar crescimento ilimitado
+        try:
+            _run(conn, "DELETE FROM login_attempts WHERE created_at < ?", (cutoff_24h,))
+            conn.commit()
+        except Exception:
+            pass
         cur = _run(conn, """
             SELECT COUNT(*) as cnt FROM login_attempts
             WHERE ip=? AND created_at > ?

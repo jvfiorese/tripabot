@@ -360,7 +360,9 @@ def is_license_revoked(email, issued_at):
         cur = _run(conn, "SELECT is_revoked FROM licenses WHERE email=? AND issued_at=?", (email, issued_at))
         row = _one(cur)
         if not row:
-            return True
+            # Bug 1: Licença não encontrada não significa revogada
+            # (pode ser banco migrado, usuário antigo, etc.) — assume válida
+            return False
         return bool(row.get('is_revoked', 0))
     finally:
         conn.close()
@@ -528,13 +530,19 @@ def get_ip_whitelist(user_id):
 
 
 def get_download_token(token):
+    from datetime import datetime, timezone
+    now_iso = datetime.now(timezone.utc).isoformat()
     conn = _conn()
     try:
         if USE_PG:
             conn.autocommit = False
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             cur.execute("BEGIN")
-            cur.execute("SELECT * FROM download_tokens WHERE token = %s FOR UPDATE", (token,))
+            # A2: Filtra tokens expirados diretamente no DB (defesa-em-profundidade)
+            cur.execute(
+                "SELECT * FROM download_tokens WHERE token = %s AND expires_at > %s FOR UPDATE",
+                (token, now_iso)
+            )
             row = cur.fetchone()
             if row:
                 cur.execute("DELETE FROM download_tokens WHERE token = %s", (token,))
@@ -544,7 +552,11 @@ def get_download_token(token):
             return None
         else:
             conn.execute("BEGIN IMMEDIATE")
-            cur = conn.execute("SELECT * FROM download_tokens WHERE token=?", (token,))
+            # A2: Filtra tokens expirados diretamente no DB (defesa-em-profundidade)
+            cur = conn.execute(
+                "SELECT * FROM download_tokens WHERE token=? AND expires_at > ?",
+                (token, now_iso)
+            )
             row = cur.fetchone()
             if row:
                 conn.execute("DELETE FROM download_tokens WHERE token=?", (token,))
