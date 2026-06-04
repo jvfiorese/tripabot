@@ -452,6 +452,85 @@
             .menu-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
+        /* ── CALCULADORAS HEPÁTICAS — TABS ───────────────────── */
+        .calc-tabs {
+            display: flex;
+            gap: 4px;
+            margin: 14px 0 18px 0;
+            background: #f0f2f5;
+            border-radius: 10px;
+            padding: 4px;
+        }
+        .calc-tab {
+            flex: 1;
+            padding: 9px 8px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12.5px;
+            font-weight: 600;
+            background: transparent;
+            color: #888;
+            transition: all 0.18s;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .calc-tab.active {
+            background: white;
+            color: #1565c0;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.12);
+        }
+        .calc-section { display: none; }
+        .calc-section.active { display: block; }
+        .calc-info-box {
+            background: #e8f4fd;
+            border-left: 3px solid #1976d2;
+            border-radius: 0 8px 8px 0;
+            padding: 10px 14px;
+            font-size: 12.5px;
+            color: #1a3a5c;
+            line-height: 1.5;
+            margin-bottom: 4px;
+        }
+        .calc-info-box .calc-ref {
+            display: block;
+            color: #5080a0;
+            font-style: italic;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+        .calc-threshold-box {
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 13.5px;
+            font-weight: 600;
+        }
+        .calc-threshold-box.grave {
+            background: #fff0f0;
+            border: 1.5px solid #e57373;
+            color: #c62828;
+        }
+        .calc-threshold-box.leve {
+            background: #f0fff4;
+            border: 1.5px solid #66bb6a;
+            color: #2e7d32;
+        }
+        .calc-threshold-box .thresh-icon { font-size: 26px; }
+        .calc-threshold-box .thresh-label { font-size: 15px; font-weight: 700; }
+        .calc-threshold-box .thresh-detail { font-size: 12px; font-weight: 400; margin-top: 2px; opacity: 0.85; }
+        #mad-copy-section, #lil-copy-section {
+            margin-top: 10px;
+        }
+        #mad-copy-text, #lil-copy-text {
+            border: 1px solid #e0e0e0; background: #fafafa; border-radius: 8px; padding: 12px;
+            font-family: 'Courier New', monospace; font-size: 12px; color: #444; outline: none;
+            resize: vertical; width: 100%; line-height: 1.6; margin-bottom: 12px;
+        }
+
         /* ── CHILD-PUGH + MELD MODULE CSS ───────────────────── */
         .childmeld-inputs-grid {
             display: grid;
@@ -682,9 +761,9 @@
                     <span class="card-desc">Gera evolução clínica com sinais vitais, BH e condutas</span>
                 </button>
                 <button id="btn-childmeld" class="menu-card" onclick="mostrarModulo('modulo-childmeld'); return false;">
-                    <span class="card-emoji">🔬</span>
-                    <span class="card-title">Child-Pugh + MELD</span>
-                    <span class="card-desc">Classificação hepática — Child-Pugh + 3 variantes MELD</span>
+                    <span class="card-emoji">💛</span>
+                    <span class="card-title">Calculadoras</span>
+                    <span class="card-desc">Child-Pugh, MELD, Maddrey, Lille — classificação hepática</span>
                 </button>
                 <button id="btn-receitas" class="menu-card" onclick="mostrarModulo('modulo-receitas'); return false;">
                     <span class="card-emoji">💊</span>
@@ -1147,104 +1226,231 @@ REGRAS ADICIONAIS:
         <div class="disclaimer">⚠️ Revise sempre antes de registrar no prontuário.</div>
     </div>
 
-    <!-- MÓDULO GASOMETRIA -->
-    <!-- MÓDULO CHILD-PUGH + MELD -->
+    <!-- MÓDULO CALCULADORAS HEPÁTICAS -->
     <div id="modulo-childmeld" class="module">
         <button class="btn-back" onclick="voltarMenu()">← Voltar</button>
-        <h2>🔬 Child-Pugh + MELD</h2>
-        <p class="description">Calculadora de classificação hepática — Child-Pugh score + 3 variantes MELD</p>
+        <h2>💛 Calculadoras Hepáticas</h2>
+        <p class="description">Child-Pugh, MELD, Maddrey e Lille — classificação e prognóstico hepático</p>
 
-        <p class="section-label" style="margin-top: 16px;">Dados do paciente</p>
-        <div class="childmeld-inputs-grid">
-            <div class="cm-input-group">
-                <label>Bilirrubina Total <span class="ref">(mg/dL)</span></label>
-                <input type="number" id="cm-bilirrubina" step="0.1" min="0" max="20" placeholder="1.0" oninput="cmCalcular()">
-            </div>
-            <div class="cm-input-group">
-                <label>INR <span class="ref">(RNI)</span></label>
-                <input type="number" id="cm-inr" step="0.1" min="0.5" max="10" placeholder="1.0" oninput="cmCalcular()">
-            </div>
-            <div class="cm-input-group">
-                <label>Albumina <span class="ref">(g/dL)</span></label>
-                <input type="number" id="cm-albumina" step="0.1" min="1" max="5.5" placeholder="4.0" oninput="cmCalcular()">
-            </div>
-            <div class="cm-input-group">
-                <label>Creatinina <span class="ref">(mg/dL)</span></label>
-                <input type="number" id="cm-creatinina" step="0.1" min="0.5" max="15" placeholder="0.8" oninput="cmCalcular()">
-            </div>
-            <div class="cm-input-group">
-                <label>Sódio Sérico <span class="ref">(mEq/L — para MELD-Na / 3.0)</span></label>
-                <input type="number" id="cm-sodio" step="1" min="120" max="160" placeholder="opcional" oninput="cmCalcular()">
-            </div>
-            <div class="cm-input-group">
-                <label>Sexo <span class="ref">(para MELD 3.0)</span></label>
-                <div class="cm-sex-row">
-                    <label><input type="radio" name="cm-sexo" value="M" checked onchange="cmCalcular()"><span>♂ Masc.</span></label>
-                    <label><input type="radio" name="cm-sexo" value="F" onchange="cmCalcular()"><span>♀ Fem.</span></label>
-                </div>
-            </div>
-            <div class="cm-input-group">
-                <label>Ascite</label>
-                <select id="cm-ascite" oninput="cmCalcular()">
-                    <option value="">—</option>
-                    <option value="0">Ausente</option>
-                    <option value="1">Controlada</option>
-                    <option value="2">Refratária</option>
-                </select>
-            </div>
-            <div class="cm-input-group full-width">
-                <label>Encefalopatia Hepática</label>
-                <select id="cm-encefalopatia" oninput="cmCalcular()">
-                    <option value="">—</option>
-                    <option value="0">Ausente</option>
-                    <option value="1">Grau I–II</option>
-                    <option value="2">Grau III–IV</option>
-                </select>
-            </div>
+        <!-- TABS -->
+        <div class="calc-tabs">
+            <button class="calc-tab active" id="tab-childmeld" onclick="switchCalcTab('childmeld')">Child-Pugh + MELD</button>
+            <button class="calc-tab" id="tab-maddrey" onclick="switchCalcTab('maddrey')">Maddrey</button>
+            <button class="calc-tab" id="tab-lille" onclick="switchCalcTab('lille')">Lille</button>
         </div>
 
-        <div class="childmeld-buttons">
-            <button class="btn-cm-secondary" onclick="cmLimpar()">Limpar campos</button>
-        </div>
-
-        <!-- RESULTADOS -->
-        <div id="cm-results">
-            <!-- Child-Pugh Card -->
-            <div class="cm-result-card cm-child-card">
-                <div class="cm-result-title">Child-Pugh</div>
-                <div class="cm-score-big" id="cm-child-score">—</div>
-                <div class="cm-classification" id="cm-child-class">—</div>
-                <div class="cm-details" id="cm-child-details">—</div>
-            </div>
-
-            <!-- 3 MELD Cards lado a lado -->
-            <div class="cm-meld-grid">
-                <div class="cm-result-card cm-meld-card" style="margin-bottom:0">
-                    <div class="cm-result-title">MELD Original</div>
-                    <div class="cm-score-big" id="cm-meld-orig-score">—</div>
-                    <div class="cm-details" id="cm-meld-orig-details">—</div>
+        <!-- ══════════════════════════════════════════
+             SEÇÃO 1: CHILD-PUGH + MELD
+        ══════════════════════════════════════════ -->
+        <div class="calc-section active" id="section-childmeld">
+            <p class="section-label" style="margin-top: 4px;">Dados do paciente</p>
+            <div class="childmeld-inputs-grid">
+                <div class="cm-input-group">
+                    <label>Bilirrubina Total <span class="ref">(mg/dL)</span></label>
+                    <input type="number" id="cm-bilirrubina" step="0.1" min="0" max="20" placeholder="1.0" oninput="cmCalcular()">
                 </div>
-                <div class="cm-result-card cm-meld-card" style="margin-bottom:0">
-                    <div class="cm-result-title">MELD 3.0</div>
-                    <div id="cm-meld3-score-wrap">
-                        <div class="cm-score-big" id="cm-meld3-score">—</div>
+                <div class="cm-input-group">
+                    <label>INR <span class="ref">(RNI)</span></label>
+                    <input type="number" id="cm-inr" step="0.1" min="0.5" max="10" placeholder="1.0" oninput="cmCalcular()">
+                </div>
+                <div class="cm-input-group">
+                    <label>Albumina <span class="ref">(g/dL)</span></label>
+                    <input type="number" id="cm-albumina" step="0.1" min="1" max="5.5" placeholder="4.0" oninput="cmCalcular()">
+                </div>
+                <div class="cm-input-group">
+                    <label>Creatinina <span class="ref">(mg/dL)</span></label>
+                    <input type="number" id="cm-creatinina" step="0.1" min="0.5" max="15" placeholder="0.8" oninput="cmCalcular()">
+                </div>
+                <div class="cm-input-group">
+                    <label>Sódio Sérico <span class="ref">(mEq/L — para MELD-Na / 3.0)</span></label>
+                    <input type="number" id="cm-sodio" step="1" min="120" max="160" placeholder="opcional" oninput="cmCalcular()">
+                </div>
+                <div class="cm-input-group">
+                    <label>Sexo <span class="ref">(para MELD 3.0)</span></label>
+                    <div class="cm-sex-row">
+                        <label><input type="radio" name="cm-sexo" value="M" checked onchange="cmCalcular()"><span>♂ Masc.</span></label>
+                        <label><input type="radio" name="cm-sexo" value="F" onchange="cmCalcular()"><span>♀ Fem.</span></label>
                     </div>
-                    <div class="cm-details" id="cm-meld3-details">—</div>
                 </div>
-                <div class="cm-result-card cm-meld-card" style="margin-bottom:0">
-                    <div class="cm-result-title">MELD-Na</div>
-                    <div id="cm-meldna-score-wrap">
-                        <div class="cm-score-big" id="cm-meldna-score">—</div>
+                <div class="cm-input-group">
+                    <label>Ascite</label>
+                    <select id="cm-ascite" oninput="cmCalcular()">
+                        <option value="">—</option>
+                        <option value="0">Ausente</option>
+                        <option value="1">Controlada com diurético</option>
+                        <option value="2">Refratária</option>
+                    </select>
+                </div>
+                <div class="cm-input-group full-width">
+                    <label>Encefalopatia Hepática</label>
+                    <select id="cm-encefalopatia" oninput="cmCalcular()">
+                        <option value="">—</option>
+                        <option value="0">Ausente (Grau 0)</option>
+                        <option value="1">Leve / Moderada (Grau I–II)</option>
+                        <option value="2">Grave / Coma (Grau III–IV)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="childmeld-buttons">
+                <button class="btn-cm-secondary" onclick="cmLimpar()">Limpar campos</button>
+            </div>
+
+            <!-- RESULTADOS CHILD-PUGH + MELD -->
+            <div id="cm-results">
+                <!-- Child-Pugh Card -->
+                <div class="cm-result-card cm-child-card">
+                    <div class="cm-result-title">Child-Pugh</div>
+                    <div class="cm-score-big" id="cm-child-score">—</div>
+                    <div class="cm-classification" id="cm-child-class">—</div>
+                    <div class="cm-details" id="cm-child-details">—</div>
+                </div>
+
+                <!-- 3 MELD Cards lado a lado -->
+                <div class="cm-meld-grid">
+                    <div class="cm-result-card cm-meld-card" style="margin-bottom:0">
+                        <div class="cm-result-title">MELD Original</div>
+                        <div class="cm-score-big" id="cm-meld-orig-score">—</div>
+                        <div class="cm-details" id="cm-meld-orig-details">—</div>
                     </div>
-                    <div class="cm-details" id="cm-meldna-details">—</div>
+                    <div class="cm-result-card cm-meld-card" style="margin-bottom:0">
+                        <div class="cm-result-title">MELD 3.0 <span style="font-size:10px;color:#4ecdc4;">OPTN</span></div>
+                        <div id="cm-meld3-score-wrap">
+                            <div class="cm-score-big" id="cm-meld3-score">—</div>
+                        </div>
+                        <div class="cm-details" id="cm-meld3-details">—</div>
+                    </div>
+                    <div class="cm-result-card cm-meld-card" style="margin-bottom:0">
+                        <div class="cm-result-title">MELD-Na</div>
+                        <div id="cm-meldna-score-wrap">
+                            <div class="cm-score-big" id="cm-meldna-score">—</div>
+                        </div>
+                        <div class="cm-details" id="cm-meldna-details">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Copiar -->
+            <div id="cm-copy-section">
+                <textarea id="cm-copy-text" rows="8" readonly></textarea>
+                <button class="btn-cm-copy" onclick="cmCopiar()">📋 Copiar Resultado</button>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════
+             SEÇÃO 2: MADDREY DISCRIMINANT FUNCTION
+        ══════════════════════════════════════════ -->
+        <div class="calc-section" id="section-maddrey">
+            <div class="calc-info-box">
+                <strong>Maddrey Discriminant Function</strong> — Avalia gravidade da hepatite alcoólica aguda e candidatos a corticosteroides.
+                <span class="calc-ref">Maddrey WC, et al. Am J Dig Dis. 1978.</span>
+            </div>
+
+            <p class="section-label" style="margin-top: 12px;">Dados do paciente</p>
+            <div class="childmeld-inputs-grid">
+                <div class="cm-input-group">
+                    <label>Tempo de Protrombina — Paciente <span class="ref">(segundos)</span></label>
+                    <input type="number" id="mad-pt-pac" step="0.1" min="8" max="120" placeholder="ex: 22" oninput="cmMaddrey()">
+                </div>
+                <div class="cm-input-group">
+                    <label>Tempo de Protrombina — Controle <span class="ref">(segundos)</span></label>
+                    <input type="number" id="mad-pt-con" step="0.1" min="8" max="20" placeholder="ex: 12" oninput="cmMaddrey()">
+                </div>
+                <div class="cm-input-group">
+                    <label>Bilirrubina Total <span class="ref">(mg/dL)</span></label>
+                    <input type="number" id="mad-bili" step="0.1" min="0" max="80" placeholder="ex: 8.0" oninput="cmMaddrey()">
+                </div>
+            </div>
+
+            <div class="childmeld-buttons">
+                <button class="btn-cm-secondary" onclick="cmMaddreyLimpar()">Limpar campos</button>
+            </div>
+
+            <!-- RESULTADO MADDREY -->
+            <div id="mad-results" style="display:none;">
+                <div class="cm-result-card" id="mad-result-card">
+                    <div class="cm-result-title">Maddrey DF</div>
+                    <div class="cm-score-big" id="mad-score">—</div>
+                    <div class="cm-classification" id="mad-class">—</div>
+                    <div class="cm-details" id="mad-details">—</div>
+                </div>
+                <div class="calc-threshold-box" id="mad-threshold-box">
+                    <div id="mad-threshold-icon">—</div>
+                    <div id="mad-threshold-text">—</div>
+                </div>
+                <div id="mad-copy-section">
+                    <textarea id="mad-copy-text" rows="4" readonly></textarea>
+                    <button class="btn-cm-copy" onclick="cmMaddreyLimpar(); cmMaddrey();" style="display:none"></button>
+                    <button class="btn-cm-copy" onclick="cmMaddreycopiar()">📋 Copiar Resultado</button>
                 </div>
             </div>
         </div>
 
-        <!-- Copiar -->
-        <div id="cm-copy-section">
-            <textarea id="cm-copy-text" rows="8" readonly></textarea>
-            <button class="btn-cm-copy" onclick="cmCopiar()">📋 Copiar Resultado</button>
+        <!-- ══════════════════════════════════════════
+             SEÇÃO 3: LILLE MODEL
+        ══════════════════════════════════════════ -->
+        <div class="calc-section" id="section-lille">
+            <div class="calc-info-box">
+                <strong>Lille Model</strong> — Prediz mortalidade em hepatite alcoólica após 7 dias de corticosteroides. Identifica não-respondedores.
+                <span class="calc-ref">Louvet A, et al. Hepatology. 2007.</span>
+            </div>
+
+            <p class="section-label" style="margin-top: 12px;">Dados do paciente — avaliados no Dia 0 (início dos esteroides)</p>
+            <div class="childmeld-inputs-grid">
+                <div class="cm-input-group">
+                    <label>Idade <span class="ref">(anos)</span></label>
+                    <input type="number" id="lil-idade" step="1" min="18" max="100" placeholder="ex: 52" oninput="cmLille()">
+                </div>
+                <div class="cm-input-group">
+                    <label>Albumina — Dia 0 <span class="ref">(g/dL)</span></label>
+                    <input type="number" id="lil-albumina" step="0.1" min="1" max="5.5" placeholder="ex: 3.0" oninput="cmLille()">
+                </div>
+                <div class="cm-input-group">
+                    <label>Bilirrubina — Dia 0 <span class="ref">(mg/dL)</span></label>
+                    <input type="number" id="lil-bili0" step="0.1" min="0" max="80" placeholder="ex: 15.0" oninput="cmLille()">
+                </div>
+                <div class="cm-input-group">
+                    <label>Bilirrubina — Dia 7 <span class="ref">(mg/dL)</span></label>
+                    <input type="number" id="lil-bili7" step="0.1" min="0" max="80" placeholder="ex: 10.0" oninput="cmLille()">
+                </div>
+                <div class="cm-input-group">
+                    <label>Tempo de Protrombina <span class="ref">(segundos — Dia 0)</span></label>
+                    <input type="number" id="lil-pt" step="0.1" min="8" max="120" placeholder="ex: 18" oninput="cmLille()">
+                </div>
+                <div class="cm-input-group">
+                    <label>Creatinina — Dia 0 <span class="ref">(mg/dL)</span></label>
+                    <input type="number" id="lil-crat" step="0.1" min="0.3" max="15" placeholder="ex: 0.9" oninput="cmLille()">
+                </div>
+            </div>
+            <div style="margin: -4px 0 14px 0; padding: 10px 14px; background: #fff8e1; border-radius: 8px; border-left: 3px solid #f9a825; font-size: 12px; color: #5d4037;">
+                <strong>Insuficiência Renal:</strong>
+                <label style="display:inline-flex;align-items:center;gap:6px;margin-left:12px;cursor:pointer;font-weight:normal;">
+                    <input type="checkbox" id="lil-ins-renal" onchange="cmLille()" style="width:16px;height:16px;accent-color:#e65100;">
+                    Creatinina > 1.3 mg/dL ou oligúria / diálise no Dia 0
+                </label>
+            </div>
+
+            <div class="childmeld-buttons">
+                <button class="btn-cm-secondary" onclick="cmLilleLimpar()">Limpar campos</button>
+            </div>
+
+            <!-- RESULTADO LILLE -->
+            <div id="lil-results" style="display:none;">
+                <div class="cm-result-card" id="lil-result-card">
+                    <div class="cm-result-title">Lille Score</div>
+                    <div class="cm-score-big" id="lil-score">—</div>
+                    <div class="cm-classification" id="lil-class">—</div>
+                    <div class="cm-details" id="lil-details">—</div>
+                </div>
+                <div class="calc-threshold-box" id="lil-threshold-box">
+                    <div id="lil-threshold-icon">—</div>
+                    <div id="lil-threshold-text">—</div>
+                </div>
+                <div id="lil-copy-section">
+                    <textarea id="lil-copy-text" rows="5" readonly></textarea>
+                    <button class="btn-cm-copy" onclick="cmLillecopiar()">📋 Copiar Resultado</button>
+                </div>
+            </div>
         </div>
 
         <div class="disclaimer">⚠️ Ferramenta de apoio clínico — sempre interprete no contexto do paciente.</div>
@@ -4569,6 +4775,17 @@ SINAIS DE ALERTA:
         }
         // ============ FIM GERADOR DE EVOLUÇÃO ============
 
+        // ============ CALCULADORAS HEPÁTICAS — TABS ============
+
+        function switchCalcTab(tab) {
+            // Remove active de todos os tabs e sections
+            document.querySelectorAll('.calc-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.calc-section').forEach(s => s.classList.remove('active'));
+            // Ativa o selecionado
+            document.getElementById('tab-' + tab).classList.add('active');
+            document.getElementById('section-' + tab).classList.add('active');
+        }
+
         // ============ CHILD-PUGH + MELD ============
 
         function cmCalcular() {
@@ -4724,6 +4941,204 @@ SINAIS DE ALERTA:
             document.getElementById('cm-copy-section').style.display = 'none';
         }
         // ============ FIM CHILD-PUGH + MELD ============
+
+        // ============ MADDREY DISCRIMINANT FUNCTION ============
+        // Fórmula: 4.6 × (PT_paciente − PT_controle) + Bilirrubina (mg/dL)
+        // Maddrey WC, et al. Am J Dig Dis. 1978;23(6):555-561.
+        // Threshold: ≥32 = doença grave → candidato a corticosteroides
+
+        function cmMaddrey() {
+            const ptPac = parseFloat(document.getElementById('mad-pt-pac').value);
+            const ptCon = parseFloat(document.getElementById('mad-pt-con').value);
+            const bili  = parseFloat(document.getElementById('mad-bili').value);
+
+            // Precisa de todos os 3 campos
+            if (isNaN(ptPac) || isNaN(ptCon) || isNaN(bili)) {
+                document.getElementById('mad-results').style.display = 'none';
+                return;
+            }
+
+            const df = 4.6 * (ptPac - ptCon) + bili;
+            const dfRound = Math.round(df * 10) / 10; // 1 casa decimal
+
+            let classe, details, tipoCard, tipoBox, icon, boxLabel, boxDetail;
+
+            if (dfRound >= 32) {
+                classe    = 'Doença Grave';
+                details   = `Maddrey DF ≥ 32 → Mortalidade hospitalar ~35–50%`;
+                tipoCard  = 'background: linear-gradient(135deg, #fff0f0, #ffe8e8); border: 1.5px solid #e57373;';
+                tipoBox   = 'grave';
+                icon      = '⚠️';
+                boxLabel  = 'Candidato a corticosteroides';
+                boxDetail = 'Prednisolona 40 mg/dia VO por 28 dias (se sem contraindicação) · Reavaliar com Lille no 7º dia';
+            } else {
+                classe    = 'Doença Não-Grave';
+                details   = `Maddrey DF < 32 → Mortalidade hospitalar ~5–10%`;
+                tipoCard  = 'background: linear-gradient(135deg, #f0fff4, #e8f5e9); border: 1.5px solid #66bb6a;';
+                tipoBox   = 'leve';
+                icon      = '✅';
+                boxLabel  = 'Manejo suportivo';
+                boxDetail = 'Sem indicação de corticosteroide com base neste score · Suporte nutricional, abstinência alcoólica';
+            }
+
+            // Exibe resultados
+            document.getElementById('mad-results').style.display = 'block';
+            const card = document.getElementById('mad-result-card');
+            card.style.cssText = tipoCard;
+            document.getElementById('mad-score').textContent = dfRound;
+            document.getElementById('mad-class').textContent = classe;
+            document.getElementById('mad-details').textContent = details;
+
+            const tBox = document.getElementById('mad-threshold-box');
+            tBox.className = 'calc-threshold-box ' + tipoBox;
+            tBox.innerHTML = `<span class="thresh-icon">${icon}</span><div><div class="thresh-label">${boxLabel}</div><div class="thresh-detail">${boxDetail}</div></div>`;
+
+            // Texto para copiar
+            const txt = [
+                'MADDREY DISCRIMINANT FUNCTION',
+                '═'.repeat(36),
+                `PT Paciente: ${ptPac}s | PT Controle: ${ptCon}s | Bilirrubina: ${bili} mg/dL`,
+                '',
+                `Maddrey DF = 4.6 × (${ptPac} − ${ptCon}) + ${bili} = ${dfRound}`,
+                '',
+                `Resultado: ${classe} (DF ${dfRound >= 32 ? '≥' : '<'} 32)`,
+                `${details}`,
+                '',
+                boxLabel + ': ' + boxDetail
+            ].join('\n');
+            document.getElementById('mad-copy-text').value = txt;
+            document.getElementById('mad-copy-section').style.display = 'block';
+        }
+
+        function cmMaddreycopiar() {
+            navigator.clipboard.writeText(document.getElementById('mad-copy-text').value)
+                .then(() => showToast('✓ Resultado copiado!', 'success', 1500));
+        }
+
+        function cmMaddreyLimpar() {
+            ['mad-pt-pac','mad-pt-con','mad-bili'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            document.getElementById('mad-results').style.display = 'none';
+        }
+        // ============ FIM MADDREY ============
+
+        // ============ LILLE MODEL ============
+        // Fórmula: R = 3.19 − 0.101×idade + 0.147×alb(g/L) + 0.0165×ΔBili(μmol/L)
+        //               − 0.206×ins_renal − 0.0065×bili_0(μmol/L) − 0.0096×PT(s)
+        // Lille = exp(−R) / (1 + exp(−R))  [equivalente: 1 / (1 + exp(R))]
+        // Louvet A, et al. Hepatology. 2007;45(4):855-863.
+        // Threshold: ≥0.45 = não-respondedor → mortalidade 6 meses ~75%
+
+        function cmLille() {
+            const idade   = parseFloat(document.getElementById('lil-idade').value);
+            const alb     = parseFloat(document.getElementById('lil-albumina').value);    // g/dL
+            const bili0   = parseFloat(document.getElementById('lil-bili0').value);      // mg/dL
+            const bili7   = parseFloat(document.getElementById('lil-bili7').value);      // mg/dL
+            const pt      = parseFloat(document.getElementById('lil-pt').value);          // segundos
+            const crat    = parseFloat(document.getElementById('lil-crat').value);
+            const insRen  = document.getElementById('lil-ins-renal').checked ? 1 : 0;
+
+            // Verificar se a insuficiência renal está marcada ou creatinina > 1.3
+            // (o modelo original define IR como Cr > 1.3 no dia 0 ou oligúria/diálise)
+            const isInsRen = insRen === 1 || (!isNaN(crat) && crat > 1.3) ? 1 : 0;
+
+            if (isNaN(idade) || isNaN(alb) || isNaN(bili0) || isNaN(bili7) || isNaN(pt)) {
+                document.getElementById('lil-results').style.display = 'none';
+                return;
+            }
+
+            // Conversões de unidade
+            const albGL   = alb * 10;                // g/dL → g/L
+            const bili0Um = bili0 * 17.1;            // mg/dL → μmol/L
+            const bili7Um = bili7 * 17.1;            // mg/dL → μmol/L
+            const deltaBili = bili0Um - bili7Um;     // ΔBilirrubina em μmol/L (positivo = queda = melhora)
+
+            // Fórmula do Lille Model
+            const R = 3.19
+                - 0.101  * idade
+                + 0.147  * albGL
+                + 0.0165 * deltaBili
+                - 0.206  * isInsRen
+                - 0.0065 * bili0Um
+                - 0.0096 * pt;
+
+            // Score Lille = exp(-R) / (1 + exp(-R)) = 1 / (1 + exp(R))
+            const lille = Math.exp(-R) / (1 + Math.exp(-R));
+            const lilleRound = Math.round(lille * 1000) / 1000; // 3 casas decimais
+
+            let classe, details, tipoCard, tipoBox, icon, boxLabel, boxDetail, sobrevida;
+
+            if (lilleRound >= 0.45) {
+                classe    = 'Não-Respondedor';
+                details   = `Lille ≥ 0.45 → Sobrevida 6 meses: ~25%`;
+                tipoCard  = 'background: linear-gradient(135deg, #fff0f0, #ffe8e8); border: 1.5px solid #e57373;';
+                tipoBox   = 'grave';
+                icon      = '⛔';
+                boxLabel  = 'Suspender corticosteroide';
+                if (lilleRound >= 0.56) {
+                    boxDetail = 'Resposta nula — mortalidade 6 meses >75%. Considerar transplante hepático precoce, pentoxifilina ou cuidados paliativos.';
+                } else {
+                    boxDetail = 'Resposta insuficiente — considerar suspensão do esteroide e avaliação para transplante hepático.';
+                }
+                sobrevida = '~25% sobrevida 6 meses';
+            } else {
+                classe    = 'Respondedor';
+                details   = `Lille < 0.45 → Sobrevida 6 meses: ~85%`;
+                tipoCard  = 'background: linear-gradient(135deg, #f0fff4, #e8f5e9); border: 1.5px solid #66bb6a;';
+                tipoBox   = 'leve';
+                icon      = '✅';
+                boxLabel  = 'Continuar corticosteroide';
+                boxDetail = 'Boa resposta ao tratamento. Completar 28 dias de prednisolona. Suporte nutricional e abstinência.';
+                sobrevida = '~85% sobrevida 6 meses';
+            }
+
+            // Exibe resultados
+            document.getElementById('lil-results').style.display = 'block';
+            const card = document.getElementById('lil-result-card');
+            card.style.cssText = tipoCard;
+            document.getElementById('lil-score').textContent = lilleRound.toFixed(3);
+            document.getElementById('lil-class').textContent = classe;
+            document.getElementById('lil-details').textContent = details;
+
+            const tBox = document.getElementById('lil-threshold-box');
+            tBox.className = 'calc-threshold-box ' + tipoBox;
+            tBox.innerHTML = `<span class="thresh-icon">${icon}</span><div><div class="thresh-label">${boxLabel}</div><div class="thresh-detail">${boxDetail}</div></div>`;
+
+            // Texto para copiar
+            const txt = [
+                'LILLE MODEL — HEPATITE ALCOÓLICA',
+                '═'.repeat(36),
+                `Idade: ${idade} anos | Albumina: ${alb} g/dL | Creatinina: ${isNaN(crat)?'—':crat+' mg/dL'}`,
+                `Bilirrubina Dia 0: ${bili0} mg/dL (${bili0Um.toFixed(1)} μmol/L)`,
+                `Bilirrubina Dia 7: ${bili7} mg/dL (${bili7Um.toFixed(1)} μmol/L) | Queda: ${deltaBili.toFixed(1)} μmol/L ${deltaBili > 0 ? '(melhora)' : '(piora/estavel)'}`,
+                `PT: ${pt}s | Insuficiência Renal: ${isInsRen ? 'Sim' : 'Não'}`,
+                '',
+                `Lille Score = ${lilleRound.toFixed(3)}`,
+                '',
+                `Resultado: ${classe} (Lille ${lilleRound >= 0.45 ? '≥' : '<'} 0.45)`,
+                `${details} — ${sobrevida}`,
+                '',
+                `Conduta: ${boxLabel}`,
+                boxDetail
+            ].join('\n');
+            document.getElementById('lil-copy-text').value = txt;
+            document.getElementById('lil-copy-section').style.display = 'block';
+        }
+
+        function cmLillecopiar() {
+            navigator.clipboard.writeText(document.getElementById('lil-copy-text').value)
+                .then(() => showToast('✓ Resultado copiado!', 'success', 1500));
+        }
+
+        function cmLilleLimpar() {
+            ['lil-idade','lil-albumina','lil-bili0','lil-bili7','lil-pt','lil-crat'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            document.getElementById('lil-ins-renal').checked = false;
+            document.getElementById('lil-results').style.display = 'none';
+        }
+        // ============ FIM LILLE ============
 
         function copiarModelo() {
             const conteudo = document.getElementById('conteudo-modelo').value;
