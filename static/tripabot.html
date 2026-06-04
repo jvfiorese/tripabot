@@ -934,6 +934,7 @@
         ::-webkit-scrollbar-thumb:hover { background: #3a5068; }
 
         </style>
+<script src="/shared-exam-parser.js"></script>
 </head>
 <body>
 
@@ -1509,6 +1510,12 @@ REGRAS ADICIONAIS:
                 <div class="cm-input-group">
                     <label>Creatinina <span class="ref">(mg/dL)</span></label>
                     <input type="number" id="cm-creatinina" step="0.1" min="0.5" max="15" placeholder="0.8" oninput="cmCalcular()">
+                </div>
+                <div class="cm-input-group full-width">
+                    <label style="cursor:pointer;display:flex;align-items:flex-start;gap:9px;font-weight:normal;text-transform:none;letter-spacing:0;color:#8895a7;font-size:12.5px;line-height:1.4;">
+                        <input type="checkbox" id="cm-dialise" onchange="cmCalcular()" style="width:16px;height:16px;margin-top:1px;flex-shrink:0;accent-color:#e85252;">
+                        <span>Em diálise (≥2 sessões nos últimos 7 dias) — <strong style="color:#c94444;">Creatinina forçada para 4,0 mg/dL</strong> (regra UNOS/OPTN)</span>
+                    </label>
                 </div>
                 <div class="cm-input-group">
                     <label>Sódio Sérico <span class="ref">(mEq/L — para MELD-Na / 3.0)</span></label>
@@ -2789,55 +2796,24 @@ REGRAS ADICIONAIS:
         // (baseado em @erikneves/exames-sabin-hab no Observable)
         // ════════════════════════════════════════════════════════════
         function isSabinTabFormat(text) {
-            return text.includes('\t') && /Data\s+O\.S\./i.test(text);
+            // Usa detectFormat do parser compartilhado
+            return (window.SharedExamParser && window.SharedExamParser.detectFormat)
+                ? window.SharedExamParser.detectFormat(text) === 'sabin-tab'
+                : (text.includes('\t') && /Data\s+O\.S\./i.test(text));
         }
 
         function parseSabinTabForTripabot(text) {
-            const startMatch = /^Data\s+O\.S\./im.exec(text);
-            if (!startMatch) return null;
-            const start = startMatch.index;
-            const endMatch = /\nProblema\b/i.exec(text.slice(start));
-            const tableText = endMatch
-                ? text.slice(start, start + endMatch.index)
-                : text.slice(start);
-
-            const rows = tableText.split('\n');
-            if (rows.length < 2) return null;
-
-            const dataRows = rows.filter(r => {
-                if (!r.trim()) return false;
-                if (/^Data\s+O\.S\./i.test(r.trim())) return false;
-                if (/^\t\d{1,2}\/\d{1,2}/.test(r)) return false;
-                return true;
-            });
+            // Usa parseSabinTabular do parser compartilhado
+            if (!window.SharedExamParser || !window.SharedExamParser.parseSabinTabular) {
+                return null;
+            }
+            const sabinLines = window.SharedExamParser.parseSabinTabular(text);
+            if (!sabinLines || sabinLines.length === 0) return null;
 
             const resultLines = [];
-            for (const row of dataRows) {
-                if (!row.includes('\t')) continue;
-                const cells = row.split('\t');
-                const name = cells[0].trim();
-                if (!name || name.length < 2) continue;
-                let value = '';
-                for (let i = 1; i < cells.length; i++) {
-                    const v = cells[i].trim();
-                    if (v && v !== '-' && !/^undefined$/i.test(v) && v !== '—') {
-                        value = v; break;
-                    }
-                }
-                if (!value) continue;
-                // Normaliza nomes Sabin para nomes reconhecidos pelo ExamParser
-                const normName = name
-                    .replace(/^LACTATOH$/i, 'Lactato').replace(/^LACTOHD$/i, 'Lactato')
-                    .replace(/^ULTRAPCR$/i, 'PCR').replace(/^PROCALC$/i, 'Procalcitonina')
-                    .replace(/^FALC$/i, 'Fosfatase Alcalina').replace(/^DEMIMERO$/i, 'D-Dímero')
-                    .replace(/^TROPOI$/i, 'Troponina').replace(/^MIOGLOB$/i, 'Mioglobina')
-                    .replace(/^PROBNP$/i, 'NT-proBNP').replace(/^CAI$/i, 'Cálcio Iônico')
-                    .replace(/^URE$/i, 'Ureia').replace(/^CRE$/i, 'Creatinina')
-                    .replace(/^CLO$/i, 'Cloro').replace(/^MAG$/i, 'Magnésio')
-                    .replace(/^TAP\s*-\s*INR$/i, 'INR')
-                    .replace(/^BT\s*-\s*BILIRRUBINA\s*TOTAIS$/i, 'Bilirrubina Total')
-                    .replace(/^BD\s*-\s*BILIRRUBINA\s*DIRETA$/i, 'Bilirrubina Direta');
-                resultLines.push(`${normName}: ${value}`);
+            for (const item of sabinLines) {
+                const name = window.SharedExamParser.normalizeSabinName(item.name);
+                resultLines.push(`${name}: ${item.value}`);
             }
             return resultLines.length > 0 ? resultLines.join('\n') : null;
         }
@@ -5120,13 +5096,17 @@ SINAIS DE ALERTA:
             const bili  = parseFloat(document.getElementById('cm-bilirrubina').value);
             const inr   = parseFloat(document.getElementById('cm-inr').value);
             const alb   = parseFloat(document.getElementById('cm-albumina').value);
-            const crat  = parseFloat(document.getElementById('cm-creatinina').value);
+            const cratInput = parseFloat(document.getElementById('cm-creatinina').value);
             const sodio = parseFloat(document.getElementById('cm-sodio').value);
             const ascite = document.getElementById('cm-ascite').value;
             const encef  = document.getElementById('cm-encefalopatia').value;
             const sexo   = document.querySelector('input[name="cm-sexo"]:checked')?.value || 'M';
+            const dialise = document.getElementById('cm-dialise').checked;
 
-            if (isNaN(bili) || isNaN(inr) || isNaN(alb) || isNaN(crat) || ascite === '' || encef === '') {
+            // Regra UNOS/OPTN: diálise ≥2x/semana → creatinina = 4.0 mg/dL
+            const crat = dialise ? 4.0 : cratInput;
+
+            if (isNaN(bili) || isNaN(inr) || isNaN(alb) || (!dialise && isNaN(cratInput)) || ascite === '' || encef === '') {
                 showToast('⚠️ Preencha todos os campos obrigatórios!', 'warning', 3000);
                 return;
             }
@@ -5137,7 +5117,7 @@ SINAIS DE ALERTA:
             const meld3res = temSodio ? cmMeld3(bili, inr, crat, alb, sodio, sexo) : null;
             const meldNaRes = temSodio ? cmMeldNa(meldOrig, sodio) : null;
 
-            cmExibir(childRes, meldOrig, meld3res, meldNaRes, temSodio);
+            cmExibir(childRes, meldOrig, meld3res, meldNaRes, temSodio, dialise);
         }
 
         function cmChildPugh(bili, inr, alb, ascite, encef) {
@@ -5209,7 +5189,7 @@ SINAIS DE ALERTA:
             return 'Mortalidade 90 dias: >60%';
         }
 
-        function cmExibir(childRes, meldOrig, meld3res, meldNaRes, temSodio) {
+        function cmExibir(childRes, meldOrig, meld3res, meldNaRes, temSodio, dialise) {
             document.getElementById('cm-results').style.display = 'block';
 
             // Child-Pugh
@@ -5265,6 +5245,7 @@ SINAIS DE ALERTA:
             document.getElementById('cm-ascite').value = '';
             document.getElementById('cm-encefalopatia').value = '';
             document.querySelector('input[name="cm-sexo"][value="M"]').checked = true;
+            document.getElementById('cm-dialise').checked = false;
             document.getElementById('cm-results').style.display = 'none';
             document.getElementById('cm-copy-section').style.display = 'none';
         }
