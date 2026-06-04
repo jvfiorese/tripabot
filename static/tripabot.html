@@ -1033,7 +1033,8 @@
         <div id="modulo-exames" class="module">
             <button class="btn-back" onclick="voltarMenu()">← Voltar</button>
             <h2>Processar Exames Laboratoriais</h2>
-            
+            <p class="description">Cole aqui os exames (PDF do HBDF ou formato curto). O sistema detecta automaticamente, estrutura e destaca valores fora da referência. Pronto para copiar para o prontuário.</p>
+
             <div class="input-area">
                 <textarea id="input-exames" placeholder="Cole aqui o texto dos exames. Aceita:&#10;• PDF do HBDF (Ctrl+A no PDF, Ctrl+C, colar aqui) — detectado automaticamente&#10;• Formato curto: 21/05/26: hb: 10,2 / cr: 1,1 / tgo: 45 / tgp: 38 ..." style="height: 300px;"></textarea>
             </div>
@@ -1072,6 +1073,7 @@
         <div id="modulo-prontuario" class="module">
             <button class="btn-back" onclick="voltarMenu()">← Voltar</button>
             <h2>Ajustar Prontuário</h2>
+            <p class="description">Selecione o serviço e cole o prontuário completo para ser reorganizado conforme o padrão da Enfermaria de Gastroenterologia — HBDF. O sistema estrutura e categoriza automaticamente, separando conteúdo classificado e não-classificado.</p>
 
             <div style="margin-bottom: 16px;">
                 <label style="display: block; font-size: 13px; font-weight: 600; color: #444; margin-bottom: 8px;">Serviço / Local:</label>
@@ -1350,6 +1352,7 @@ REGRAS ADICIONAIS:
     <div id="modulo-receitas" class="module">
         <button class="btn-back" onclick="voltarMenu()">← Voltar</button>
         <h2>Gerar Receita Médica</h2>
+        <p class="description">Preencha com medicações e doses. O sistema gera receita formatada no padrão do serviço, pronta para impressão com assinatura.</p>
 
         <div class="input-area">
             <textarea id="input-receita" placeholder="Cole medicações" style="height: 250px;"></textarea>
@@ -1493,6 +1496,7 @@ REGRAS ADICIONAIS:
              SEÇÃO 1: CHILD-PUGH + MELD
         ══════════════════════════════════════════ -->
         <div class="calc-section active" id="section-childmeld">
+            <p class="description" style="margin-bottom: 20px;">Preencha os parâmetros laboratoriais e o sistema calcula automaticamente a classe de Child-Pugh (A/B/C), MELD Original, MELD-Na e MELD 3.0, fornecendo classificação de gravidade e estimativas de mortalidade hepática.</p>
             <p class="section-label" style="margin-top: 4px;">Dados do paciente</p>
             <div class="childmeld-inputs-grid">
                 <div class="cm-input-group">
@@ -1601,6 +1605,7 @@ REGRAS ADICIONAIS:
                 <strong>Maddrey Discriminant Function</strong> — Avalia gravidade da hepatite alcoólica aguda e candidatos a corticosteroides.
                 <span class="calc-ref">Maddrey WC, et al. Am J Dig Dis. 1978.</span>
             </div>
+            <p class="description" style="margin-bottom: 20px;">Preencha o tempo de protrombina (paciente e controle) e bilirrubina. Escores ≥32 indicam hepatite alcoólica severa e são candidatos para terapia com corticosteroides.</p>
 
             <p class="section-label" style="margin-top: 12px;">Dados do paciente</p>
             <div class="childmeld-inputs-grid">
@@ -1650,6 +1655,7 @@ REGRAS ADICIONAIS:
                 <strong>Lille Model</strong> — Prediz mortalidade em hepatite alcoólica após 7 dias de corticosteroides. Identifica não-respondedores.
                 <span class="calc-ref">Louvet A, et al. Hepatology. 2007.</span>
             </div>
+            <p class="description" style="margin-bottom: 20px;">Preencha parâmetros do Dia 0 (início) e Dia 7 (após corticosteroides). Escores ≥0,45 indicam não-respondedor e sugerem interrupção do tratamento esteroide por falta de resposta.</p>
 
             <p class="section-label" style="margin-top: 12px;">Dados do paciente — avaliados no Dia 0 (início dos esteroides)</p>
             <div class="childmeld-inputs-grid">
@@ -1716,7 +1722,7 @@ REGRAS ADICIONAIS:
     <div id="modulo-modelos" class="module">
         <button class="btn-back" onclick="voltarMenu()">← Voltar</button>
         <h2>Modelos e Templates</h2>
-        <p class="description">Selecione uma categoria para ver os modelos disponíveis</p>
+        <p class="description">Acesse 42 modelos customizáveis de receitas, pedidos de exame, procedimentos, orientações e encaminhamentos. Selecione a categoria e copie direto para o prontuário.</p>
 
         <!-- Tela 1: Categorias -->
         <div id="tela-categorias" style="display: block;">
