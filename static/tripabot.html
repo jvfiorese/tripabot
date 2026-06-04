@@ -1525,18 +1525,18 @@ REGRAS ADICIONAIS:
                     <label>Ascite</label>
                     <select id="cm-ascite" oninput="cmCalcular()">
                         <option value="">—</option>
-                        <option value="0">Ausente</option>
-                        <option value="1">Controlada com diurético</option>
-                        <option value="2">Refratária</option>
+                        <option value="1">Ausente</option>
+                        <option value="2">Controlada com diurético</option>
+                        <option value="3">Refratária</option>
                     </select>
                 </div>
                 <div class="cm-input-group full-width">
                     <label>Encefalopatia Hepática</label>
                     <select id="cm-encefalopatia" oninput="cmCalcular()">
                         <option value="">—</option>
-                        <option value="0">Ausente (Grau 0)</option>
-                        <option value="1">Leve / Moderada (Grau I–II)</option>
-                        <option value="2">Grave / Coma (Grau III–IV)</option>
+                        <option value="1">Ausente (Grau 0)</option>
+                        <option value="2">Leve / Moderada (Grau I–II)</option>
+                        <option value="3">Grave / Coma (Grau III–IV)</option>
                     </select>
                 </div>
             </div>
@@ -5086,7 +5086,7 @@ SINAIS DE ALERTA:
             const b = Math.max(bili, 1.0);
             const i = Math.max(inr, 1.0);
             const c = Math.min(Math.max(crat, 1.0), 4.0);
-            const raw = 3.78 * Math.log(b) + 11.2 * Math.log(i) + 9.57 * Math.log(c) - 6.43;
+            const raw = 3.78 * Math.log(b) + 11.2 * Math.log(i) + 9.57 * Math.log(c) + 6.43;
             return { score: Math.min(Math.max(Math.round(raw), 6), 40) };
         }
 
