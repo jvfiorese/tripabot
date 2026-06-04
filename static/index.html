@@ -7,81 +7,190 @@
 <link rel="icon" href="/tripabot-logo.png">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #f0f4f8;
+    background: #0d1117;
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 20px;
 }
+
 .card {
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    background: #161b27;
+    border-radius: 18px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    border: 1px solid #2a3a52;
     padding: 40px 36px;
     width: 100%;
     max-width: 420px;
 }
+
+/* ── Logo circular ── */
 .logo {
     text-align: center;
     margin-bottom: 28px;
 }
-.logo img {
-    width: 96px;
-    height: 96px;
-    object-fit: contain;
-    margin-bottom: 4px;
+.logo-img-wrap {
+    display: inline-block;
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #e85252;
+    box-shadow: 0 0 0 5px rgba(232,82,82,0.12), 0 4px 16px rgba(0,0,0,0.4);
+    margin-bottom: 10px;
+    background: #1e2a3a;
+}
+.logo-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.logo h1 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #e8edf5;
+    letter-spacing: -0.3px;
+    margin-bottom: 3px;
 }
 .logo p {
-    font-size: 12px;
-    color: #999;
-    margin-top: 2px;
+    font-size: 11.5px;
+    color: #4a5c78;
+    margin-top: 0;
+    line-height: 1.4;
 }
+
+/* ── Paineis ── */
 .panel { display: none; }
 .panel.active { display: block; }
+
+/* ── Form ── */
 .form-group { margin-bottom: 14px; }
-label { font-size: 12px; font-weight: 600; color: #555; display: block; margin-bottom: 5px; }
+label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6a7c96;
+    display: block;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
 input[type=email], input[type=password], input[type=text] {
-    width: 100%; padding: 11px 14px;
-    border: 1.5px solid #e0e0e0; border-radius: 8px;
-    font-size: 15px; outline: none; transition: border-color 0.15s;
+    width: 100%;
+    padding: 12px 14px;
+    background: #111827;
+    border: 1.5px solid #2a3a52;
+    border-radius: 9px;
+    font-size: 15px;
+    color: #dde3ec;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
 }
-input:focus { border-color: #e85252; }
+input::placeholder { color: #3a4e68; }
+input:focus {
+    border-color: #e85252;
+    box-shadow: 0 0 0 3px rgba(232,82,82,0.10);
+}
+
+/* ── Botões ── */
 .btn {
-    width: 100%; padding: 13px;
-    background: #e85252; color: white;
-    border: none; border-radius: 8px;
-    font-size: 15px; font-weight: 600;
-    cursor: pointer; transition: background 0.15s;
-    margin-top: 4px;
+    width: 100%;
+    padding: 13px;
+    background: #e85252;
+    color: white;
+    border: none;
+    border-radius: 9px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    margin-top: 6px;
+    font-family: inherit;
+    letter-spacing: 0.2px;
 }
-.btn:hover { background: #c94444; }
-.btn:disabled { background: #ccc; cursor: not-allowed; }
+.btn:hover { background: #d04040; }
+.btn:active { transform: scale(0.98); }
+.btn:disabled { background: #2a3a52; color: #5a6880; cursor: not-allowed; }
+
 .btn-secondary {
-    width: 100%; padding: 12px;
-    background: white; color: #e85252;
-    border: 2px solid #e85252; border-radius: 8px;
-    font-size: 15px; font-weight: 600;
-    cursor: pointer; transition: all 0.15s;
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    color: #e85252;
+    border: 1.5px solid #e85252;
+    border-radius: 9px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
     margin-top: 10px;
+    font-family: inherit;
 }
-.btn-secondary:hover { background: #fff5f5; }
-.msg { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-size: 13px; display: none; }
-.msg.success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
-.msg.error   { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+.btn-secondary:hover {
+    background: rgba(232,82,82,0.08);
+}
+
+/* ── Mensagens ── */
+.msg {
+    margin-top: 12px;
+    padding: 11px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+    line-height: 1.5;
+    white-space: pre-line;
+}
+.msg.success {
+    background: #0a2a14;
+    color: #66bb6a;
+    border: 1px solid #1a6030;
+}
+.msg.error {
+    background: #2a0d0d;
+    color: #ef9a9a;
+    border: 1px solid #7a2020;
+}
+
+/* ── Rodapé ── */
 .contact-link {
-    display: block; text-align: center;
-    font-size: 12px; color: #bbb; margin-top: 14px;
+    display: block;
+    text-align: center;
+    font-size: 12px;
+    color: #2a3a52;
+    margin-top: 14px;
 }
-.contact-link a { color: #bbb; }
+.contact-link a { color: #3a5068; text-decoration: none; }
+.contact-link a:hover { color: #e85252; }
+
+/* ── Divisor ── */
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 14px 0 4px;
+    color: #2a3a52;
+    font-size: 11px;
+}
+.divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #2a3a52;
+}
 </style>
 </head>
 <body>
 <div class="card">
     <div class="logo">
-        <img src="/tripabot-logo.png" alt="TripaBot">
+        <div class="logo-img-wrap">
+            <img src="/tripabot-logo.png" alt="TripaBot" onerror="this.parentElement.innerHTML='🤖'">
+        </div>
+        <h1>TripaBot</h1>
         <p>Padronização Médica — Gastroenterologia HBDF</p>
     </div>
 
@@ -97,6 +206,7 @@ input:focus { border-color: #e85252; }
         </div>
         <button class="btn" id="btn-login" onclick="doLogin()">Entrar →</button>
         <div id="login-msg" class="msg"></div>
+        <div class="divider">ou</div>
         <button class="btn-secondary" onclick="showPanel('register')">Criar conta grátis</button>
         <div class="contact-link"><a id="contact-link" href="#">Dúvidas? Entre em contato</a></div>
     </div>
@@ -117,8 +227,11 @@ input:focus { border-color: #e85252; }
         </div>
         <button class="btn" id="btn-register" onclick="doRegister()">Criar conta grátis →</button>
         <div id="reg-msg" class="msg"></div>
-        <button class="btn-secondary" onclick="showPanel('login')" style="margin-top:10px;">Já tenho conta — Fazer login</button>
-        <div class="contact-link" style="margin-top:10px; font-size:11px;">Acesso gratuito para residentes de gastroenterologia.</div>
+        <div class="divider">ou</div>
+        <button class="btn-secondary" onclick="showPanel('login')">Já tenho conta — Fazer login</button>
+        <div class="contact-link" style="margin-top:10px; font-size:11px;">
+            Acesso gratuito para residentes de gastroenterologia.
+        </div>
     </div>
 </div>
 
@@ -157,10 +270,11 @@ async function doLogin() {
 
         if (!res.ok) {
             showMsg('login-msg', 'error', data.error || 'Email ou senha incorretos.');
+            btn.disabled = false;
+            btn.textContent = 'Entrar →';
             return;
         }
 
-        // Redireciona direto para o app
         btn.textContent = 'Abrindo TripaBot...';
         window.location.href = `/app?token=${data.download_token}`;
 
@@ -177,7 +291,6 @@ async function doRegister() {
     const password = document.getElementById('reg-password').value;
     const name     = document.getElementById('reg-name').value.trim();
 
-    // B1: Validação de formato de email no cliente
     const EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
     if (!email || !password) { showMsg('reg-msg', 'error', 'Preencha email e senha.'); return; }
     if (!EMAIL_RE.test(email)) { showMsg('reg-msg', 'error', 'Email inválido. Verifique e tente novamente.'); return; }
@@ -201,7 +314,6 @@ async function doRegister() {
             return;
         }
 
-        // C1: Verificação de email — não redireciona mais, exibe mensagem
         if (data.email_pending) {
             btn.style.display = 'none';
             showMsg('reg-msg', 'success',
@@ -211,7 +323,6 @@ async function doRegister() {
             return;
         }
 
-        // Fallback (não deve acontecer com verificação ativa)
         btn.textContent = 'Abrindo TripaBot...';
         window.location.href = `/app?token=${data.download_token}`;
 
