@@ -3053,7 +3053,7 @@ REGRAS ADICIONAIS:
             { padrao: 'Nível de Suporte',
               patterns: [/nível\s+de\s+suporte/i, /cuidados.*paliativo/i, /medidas\s+invasiva/i] },
             { padrao: 'Diagnósticos Atuais',
-              patterns: [/diagn[oó]stico/i, /hip[oó]tese\s+diagn/i, /lista\s+de\s+problemas/i, /motivo\s+da\s+interna[cç]/i, /motivo\s+do\s+acompanhamento/i, /impressão\s+diagnóstica/i] },
+              patterns: [/diagn[oó]stico/i, /hip[oó]tese\s+diagn/i, /lista\s+de\s+problemas/i, /motivo\s+d[aeo]\s+(?:interna|internamento|admiss|acompanha)/i, /impress[aã]o\s+diagn[oó]stica/i, /quadro\s+atual/i] },
             { padrao: 'Critérios de Prognóstico',
               patterns: [/critérios?.*prognóstico/i, /\bglobe\b/i, /barcelona/i, /maddrey/i, /\bmeld\b/i, /child-pugh/i, /mayo\s+risk/i, /model\s+for\s+end.*stage/i] },
             // Alergias ANTES de HPP — "ANTECEDENTES ALÉRGICOS" deve ir para Alergias, não HPP
@@ -3184,30 +3184,53 @@ REGRAS ADICIONAIS:
             if (ABBREV_SECTION[abbrevKey]) return ABBREV_SECTION[abbrevKey];
 
             if (s.length < 3) return null;
-            // Cabeçalho: começa com #, termina com :, ou all-caps ≥2 chars ≤50 chars
+
+            // ── Conteúdo em texto corrido (sem #, sem ":" final, não all-caps) ──
+            // Prontuários externos frequentemente embutem o nome da seção na própria frase.
+            // Estas regras valem mesmo quando a linha NÃO é um cabeçalho formatado.
+            // Identificação começando a linha
+            if (/^#*\s*(?:identifica[cç][aã]o|dados\s+(?:do\s+paciente|pessoais)|paciente\s*:)/i.test(s))
+                return 'Identificação';
+            // Alergia em texto corrido: "Alérgico a X", "Alergia a X", "Nega alergias", "Sem alergias", "APLP"
+            if (/^#*\s*(?:al[eé]rgic\w*|alergias?\b|nega\s+alergi\w*|sem\s+alergi\w*|nega\s+aplp\b|aplp\b)/i.test(s))
+                return 'Alergias';
+            // Motivo de internação / admissão / acompanhamento → Diagnósticos
+            if (/^#*\s*motivo\s+d[aeo]\s+(?:interna|internamento|admiss|acompanha)/i.test(s))
+                return 'Diagnósticos Atuais';
+
+            // ── Cabeçalho clássico: começa com #, termina com ":", ou all-caps ──
             const allCaps = /^[^a-záéíóúàâêôãõüçñ]{2,}$/.test(s) && s.length <= 60;
             const isHeader = /^#+/.test(s) || /:\s*$/.test(s) || allCaps;
-            if (!isHeader) return null;
 
-            // Detecção especial para Admissão (permite criar blocos dinâmicos)
-            const admissaoMatch = s.match(/(?:admiss[aã]o|entrada)\s+(.+?)(?:\s*[:=])?$/i);
-            if (admissaoMatch) {
-                const nome = admissaoMatch[1].trim().toLowerCase();
-                // Variantes de "enfermaria gastroenterologia" → bloco padrão
-                const ehEnfermariaGastro = /gastroenterologia|gastro\b|enfermaria\s+gast/i.test(nome);
-                if (!ehEnfermariaGastro && nome.length > 3) {
-                    return `Admissão ${admissaoMatch[1].trim()}`;
+            // ── Cabeçalho inline "Rótulo: conteúdo" ──
+            // Testa os padrões de seção apenas no rótulo (texto antes do primeiro ":").
+            const colonIdx = s.indexOf(':');
+            const labelBeforeColon = (colonIdx > 1 && colonIdx <= 45)
+                ? s.slice(0, colonIdx).replace(/^#+\s*/, '').trim()
+                : null;
+
+            // Detecção especial para Admissão (apenas como cabeçalho formatado)
+            if (isHeader) {
+                const admissaoMatch = s.match(/(?:admiss[aã]o|entrada)\s+(.+?)(?:\s*[:=])?$/i);
+                if (admissaoMatch) {
+                    const nome = admissaoMatch[1].trim().toLowerCase();
+                    // Variantes de "enfermaria gastroenterologia" → bloco padrão
+                    const ehEnfermariaGastro = /gastroenterologia|gastro\b|enfermaria\s+gast/i.test(nome);
+                    if (!ehEnfermariaGastro && nome.length > 3) {
+                        return `Admissão ${admissaoMatch[1].trim()}`;
+                    }
+                    return 'Admissão Enfermaria Gastroenterologia';
                 }
-                return 'Admissão Enfermaria Gastroenterologia';
-            }
-            // Se for só "ADMISSÃO:" ou "ENTRADA:" sem nome específico
-            if (/(?:admiss[aã]o|entrada)\s*[:=]?$/i.test(s)) {
-                return 'Admissão Enfermaria Gastroenterologia';
+                // Se for só "ADMISSÃO:" ou "ENTRADA:" sem nome específico
+                if (/(?:admiss[aã]o|entrada)\s*[:=]?$/i.test(s)) {
+                    return 'Admissão Enfermaria Gastroenterologia';
+                }
             }
 
-            // Padrões fixos
+            // Padrões fixos — na linha inteira (se cabeçalho) ou no rótulo antes do ":"
             for (const { padrao, patterns } of sectionMap) {
-                if (patterns.some(p => p.test(s))) return padrao;
+                if (isHeader && patterns.some(p => p.test(s))) return padrao;
+                if (labelBeforeColon && patterns.some(p => p.test(labelBeforeColon))) return padrao;
             }
             return null;
         }
@@ -3343,8 +3366,16 @@ REGRAS ADICIONAIS:
                     if (matched) {
                         flush();
                         currentSection = matched;
-                        // Preserva conteúdo inline da linha de cabeçalho (remove # e : finais)
-                        const inline = line.trim().replace(/^#+\s*/, '').replace(/:\s*$/, '').trim();
+                        // Preserva conteúdo inline da linha de cabeçalho (remove # e : finais).
+                        // Para "Rótulo: conteúdo", mantém só o conteúdo — mas preserva o rótulo
+                        // se ele contiver números (ex: datas em "Exames 15/01: ...").
+                        let inline = line.trim().replace(/^#+\s*/, '');
+                        const mLabelColon = inline.match(/^([^:]{2,45}):\s*(.+)$/);
+                        if (mLabelColon && !/\d/.test(mLabelColon[1])) {
+                            inline = mLabelColon[2].trim();
+                        } else {
+                            inline = inline.replace(/:\s*$/, '').trim();
+                        }
                         const entry = sectionMap.find(e => e.padrao === matched);
                         // Não preservar o inline se for apenas o nome da seção repetido
                         const inlineNormalizado = inline.toUpperCase().replace(/[^A-ZÁÉÍÓÚÀÂÊÔÃÕÇ\s]/g, '').trim();
