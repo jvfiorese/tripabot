@@ -5323,13 +5323,18 @@ SINAIS DE ALERTA:
         }
 
         function cmMeldNa(meldOrig, sodio) {
-            // UNOS 2016 — Kim WR et al. 2008
-            // Na capped 125–137 mEq/L
-            const na = Math.min(Math.max(sodio, 125), 137);
+            // UNOS/OPTN 2016 — Kim WR et al. 2008
+            // Regra oficial: o ajuste de sódio SÓ se aplica quando MELD ≥ 12.
+            // Para MELD ≤ 11, MELD-Na = MELD. (Na limitado a 125–137 mEq/L.)
             const m = meldOrig.score;
+            if (m < 12) {
+                return { score: m, ajuste: 0, motivo: 'Sem ajuste (MELD < 12)' };
+            }
+            const na = Math.min(Math.max(sodio, 125), 137);
             const raw = m + 1.32 * (137 - na) - (0.033 * m * (137 - na));
             const score = Math.min(Math.max(Math.round(raw), m), 40); // MELD-Na nunca < MELD Original
-            return { score, ajuste: score - m };
+            const motivo = (score > m) ? `+${score - m} pts por hiponatremia` : 'Sem ajuste (Na ≥ 137)';
+            return { score, ajuste: score - m, motivo };
         }
 
         function cmMeldRisco(score) {
@@ -5368,7 +5373,7 @@ SINAIS DE ALERTA:
             if (temSodio) {
                 document.getElementById('cm-meldna-score').textContent = meldNaRes.score;
                 document.getElementById('cm-meldna-score').className = 'cm-score-big';
-                const ajTxt = meldNaRes.ajuste > 0 ? `+${meldNaRes.ajuste} pts por hiponatremia` : 'Sem ajuste (Na ≥ 137)';
+                const ajTxt = meldNaRes.motivo || (meldNaRes.ajuste > 0 ? `+${meldNaRes.ajuste} pts por hiponatremia` : 'Sem ajuste');
                 document.getElementById('cm-meldna-details').textContent = cmMeldRisco(meldNaRes.score) + ` • ${ajTxt}`;
             } else {
                 document.getElementById('cm-meldna-score').textContent = '—';
