@@ -56,10 +56,16 @@ SECRET_KEY      = os.environ.get('TRIPABOT_SECRET_KEY', '')
 ADMIN_PASSWORD  = os.environ.get('ADMIN_PASSWORD', '')
 PIX_KEY         = os.environ.get('PIX_KEY', 'Configure PIX_KEY no .env')
 CONTACT_EMAIL   = os.environ.get('CONTACT_EMAIL', '')
-APP_VERSION     = '1.5.0'  # Email verification
+APP_VERSION     = '1.7.0'  # FIB-4 + registro direto (verificação de email opcional)
 RESEND_API_KEY  = os.environ.get('RESEND_API_KEY', '')
 BASE_URL        = os.environ.get('BASE_URL', 'https://tripabot-production.up.railway.app')
 FROM_EMAIL      = os.environ.get('FROM_EMAIL', 'noreply@tripabot.com.br')
+
+# Verificação de email DESATIVADA por padrão: com FROM_EMAIL=onboarding@resend.dev
+# o Resend só entrega para o dono da conta — usuários reais não recebem o link.
+# Para reativar (após verificar um domínio próprio no Resend), defina
+# REQUIRE_EMAIL_VERIFICATION=true no Railway.
+REQUIRE_EMAIL_VERIFICATION = os.environ.get('REQUIRE_EMAIL_VERIFICATION', 'false').lower() == 'true'
 
 # Tokens de admin — usa funções do database.py (compatível com SQLite e PostgreSQL)
 def _admin_token_valid(token):
@@ -171,7 +177,7 @@ def send_verification_email(email: str, token: str) -> bool:
       Confirme seu email para ativar sua conta trial de <strong>30 dias grátis</strong>.
     </p>
     <a href="{link}"
-       style="display:inline-block;background:#1565c0;color:white;padding:14px 32px;
+       style="display:inline-block;background:#e85252;color:white;padding:14px 32px;
               text-decoration:none;border-radius:8px;font-size:15px;font-weight:600;">
       ✅ Ativar Minha Conta
     </a>
@@ -363,22 +369,39 @@ def api_register():
     if not user:
         return jsonify({'error': 'Este email já está cadastrado'}), 409
 
-    # C1: Verificação de email — gera token de ativação (24h)
-    verify_token = secrets.token_urlsafe(32)
-    expires = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
-    set_email_verify_token(user['id'], verify_token, expires)
+    if REQUIRE_EMAIL_VERIFICATION:
+        # C1: Verificação de email — gera token de ativação (24h)
+        verify_token = secrets.token_urlsafe(32)
+        expires = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
+        set_email_verify_token(user['id'], verify_token, expires)
 
-    # Envia email de confirmação
-    email_sent = send_verification_email(email, verify_token)
-    if not email_sent:
-        logger.error(f"[REGISTER] Falha ao enviar email para {_mask_email(email)}")
-        # Mesmo com falha no email, conta foi criada — não reverter (pode reenviar depois)
+        # Envia email de confirmação
+        email_sent = send_verification_email(email, verify_token)
+        if not email_sent:
+            logger.error(f"[REGISTER] Falha ao enviar email para {_mask_email(email)}")
+            # Mesmo com falha no email, conta foi criada — não reverter (pode reenviar depois)
+
+        return jsonify({
+            'success': True,
+            'email_pending': True,
+            'message': 'Conta criada! Verifique seu email para ativar o TripaBot.',
+            'email': email,
+        }), 201
+
+    # Verificação desativada — ativa trial de 30 dias e libera acesso imediato
+    lic = generate_license(email, days=30)
+    save_license(user['id'], email, lic['issued_at'], lic['expires_at'], lic['plan'], lic['lic_content'])
+    update_user_trial(user['id'], lic['expires_at'])
+    dl_token = _make_download_token(user['id'], lic['lic_content'])
+    logger.info(f"[REGISTER] ✅ Conta criada (registro direto): {_mask_email(email)}")
 
     return jsonify({
         'success': True,
-        'email_pending': True,
-        'message': 'Conta criada! Verifique seu email para ativar o TripaBot.',
-        'email': email,
+        'email':          email,
+        'status':         'trial',
+        'expires_at':     lic['expires_at'],
+        'plan':           lic['plan'],
+        'download_token': dl_token,
     }), 201
 
 

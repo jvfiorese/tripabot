@@ -7,7 +7,7 @@ senão usa SQLite local (desenvolvimento).
 
 import os
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 # ── Detecta modo ──────────────────────────────────────────────
 _DB_URL = os.environ.get('DATABASE_URL', '')
