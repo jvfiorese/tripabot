@@ -67,6 +67,11 @@ FROM_EMAIL      = os.environ.get('FROM_EMAIL', 'noreply@tripabot.com.br')
 # REQUIRE_EMAIL_VERIFICATION=true no Railway.
 REQUIRE_EMAIL_VERIFICATION = os.environ.get('REQUIRE_EMAIL_VERIFICATION', 'false').lower() == 'true'
 
+# Login DESABILITADO por padrão (período de testes): a raiz "/" serve o app
+# direto em modo convidado, sem tela de login. Todo o sistema de login/registro
+# continua intacto no código. Para reativar, defina DISABLE_LOGIN=false no Railway.
+LOGIN_DISABLED = os.environ.get('DISABLE_LOGIN', 'true').lower() == 'true'
+
 # Tokens de admin — usa funções do database.py (compatível com SQLite e PostgreSQL)
 def _admin_token_valid(token):
     from database import _run, _one, _conn, USE_PG
@@ -246,6 +251,25 @@ def _make_download_token(user_id: int, lic_content: str) -> str:
 
 @app.route('/')
 def index():
+    # Login desabilitado (período de testes): serve o app direto em modo convidado.
+    if LOGIN_DISABLED:
+        html_path = os.path.join(app.static_folder, 'tripabot.html')
+        if not os.path.exists(html_path):
+            return jsonify({'error': 'Arquivo não encontrado'}), 404
+        with open(html_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        user_info = {
+            'email': '', 'plan': 'guest', 'expires_at': '',
+            'contact_email': CONTACT_EMAIL, 'version': APP_VERSION,
+        }
+        injection = (
+            f"\n<script>"
+            f"window.__GUEST_MODE__ = true;"
+            f"window.__USER_INFO__ = {json.dumps(user_info)};"
+            f"</script>\n"
+        )
+        html_content = html_content.replace('</head>', f'{injection}</head>')
+        return Response(html_content, mimetype='text/html')
     return send_from_directory('static', 'index.html')
 
 

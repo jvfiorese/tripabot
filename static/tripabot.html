@@ -5929,6 +5929,14 @@ SINAIS DE ALERTA:
 
         // Inicialização principal
         async function tbInitLicense() {
+            // Modo convidado (login desabilitado p/ período de testes):
+            // libera o app direto, sem licença nem verificação online.
+            if (window.__GUEST_MODE__) {
+                const appEl = document.getElementById('tb-app') || document.getElementById('tb-lic-screen');
+                if (appEl) appEl.style.display = 'block';
+                return;
+            }
+
             // v2.0: modo exclusivamente online — requer window.__LIC_CONTENT__
             const licContent = window.__LIC_CONTENT__;
 
